@@ -1,16 +1,11 @@
-const users = [];
+import * as authService from '../services/auth.service.js';
 
 export const register = (req, res) => {
-	const { username, password } = req.body;
-	users.push({ username, password });
-	res.json({ message: `User ${username} registered successfully` });
+	const user = authService.register(req.body);
+	res.json({ message: `User ${user.username} registered successfully` });
 };
 
 export const login = (req, res) => {
-	const { username, password } = req.body;
-	const user = users.find((u) => u.username === username && u.password === password);
-	if (!user) {
-		return res.status(401).json({ message: 'Invalid credentials' });
-	}
-	res.json({ message: `User ${username} logged in successfully` });
+	const user = authService.login(req.body);
+	res.json({ username: user.username, token: user.token });
 };
