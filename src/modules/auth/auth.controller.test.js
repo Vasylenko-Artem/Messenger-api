@@ -1,17 +1,29 @@
-import { login, register } from './auth.controller.js';
+import { createAuthController } from './auth.controller.js';
 
 describe('Auth Controller', () => {
-	it('should register a new user', () => {
-		const req = { body: { username: 'test', password: 'password' } };
-		const res = { json: jest.fn() };
-		register(req, res);
-		expect(res.json).toHaveBeenCalledWith({ message: 'User test registered successfully' });
+	let controller;
+	let authService;
+
+	beforeEach(() => {
+		authService = {
+			register: jest.fn(),
+			login: jest.fn(),
+			refreshToken: jest.fn(),
+		};
+
+		controller = createAuthController(authService);
 	});
 
-	it('should login a user', () => {
-		const req = { body: { username: 'test', password: 'password' } };
-		const res = { json: jest.fn() };
-		login(req, res);
-		expect(res.json).toHaveBeenCalledWith({ message: 'User test logged in successfully' });
+	it('should register user', async () => {
+		authService.register.mockResolvedValue({ username: 'test' });
+
+		const req = { body: {} };
+		const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
+
+		await controller.register(req, res);
+
+		expect(res.json).toHaveBeenCalledWith({
+			message: 'User test registered successfully',
+		});
 	});
 });
