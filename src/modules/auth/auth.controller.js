@@ -1,4 +1,4 @@
-import * as authService from '../services/auth.service.js';
+import * as authService from './auth.service.js';
 
 export const register = (req, res) => {
 	const user = authService.register(req.body);
