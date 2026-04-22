@@ -1,5 +1,34 @@
 import * as authService from './auth.service.js';
 
+/**
+ * @openapi
+ * /auth/register:
+ *   post:
+ *     summary: Register new user
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: testuser
+ *               password:
+ *                 type: string
+ *                 example: 123456
+ *     responses:
+ *       200:
+ *         description: User registered successfully
+ *       400:
+ *         description: Bad request
+ */
 export const register = async (req, res) => {
   try {
     const user = await authService.register(req.body);
@@ -9,6 +38,33 @@ export const register = async (req, res) => {
   }
 };
 
+/**
+ * @openapi
+ * /auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Logged in, tokens set in cookies
+ *       401:
+ *         description: Invalid credentials
+ */
 export const login = async (req, res) => {
   try {
     const { accessToken, refreshToken } = await authService.login(req.body);
@@ -34,6 +90,19 @@ export const login = async (req, res) => {
   }
 };
 
+/**
+ * @openapi
+ * /auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags:
+ *       - Auth
+ *     responses:
+ *       200:
+ *         description: Token refreshed
+ *       401:
+ *         description: No or invalid refresh token
+ */
 export const refreshToken = async (req, res) => {
   try {
     const token = req.cookies.refreshToken;
@@ -47,13 +116,15 @@ export const refreshToken = async (req, res) => {
     res
       .cookie('accessToken', accessToken, {
         httpOnly: true,
-        secure: true,
+        // secure: true,
+        secure: false,
         sameSite: 'strict',
         maxAge: 1000 * 60 * 60,
       })
       .cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: true,
+        // secure: true,
+        secure: false,
         sameSite: 'strict',
         maxAge: 1000 * 60 * 60 * 24 * 7,
       })
@@ -63,10 +134,22 @@ export const refreshToken = async (req, res) => {
   }
 };
 
+/**
+ * @openapi
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags:
+ *       - Auth
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ */
 export const logout = (req, res) => {
   const cookiesOptions = {
     httpOnly: true,
-    secure: true,
+    // secure: true,
+    secure: false,
     sameSite: 'strict',
   };
 
@@ -76,6 +159,29 @@ export const logout = (req, res) => {
     .json({ message: 'Logged out' });
 };
 
+/**
+ * @openapi
+ * /auth/status:
+ *   get:
+ *     summary: Get current user status
+ *     tags:
+ *       - Auth
+ *     responses:
+ *       200:
+ *         description: User info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     username:
+ *                       type: string
+ *       401:
+ *         description: Not authenticated
+ */
 export const status = async (req, res) => {
   const user = req.user; // Set by auth middleware
 
