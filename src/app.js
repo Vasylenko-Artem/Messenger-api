@@ -15,7 +15,7 @@ app.use('/auth', authRoutes);
 app.use('/messages', messageRoutes);
 
 app.get('/', (req, res) => {
-	res.send('Hello World');
+  res.send('Hello World');
 });
 
 export default app;

@@ -1,5 +1,5 @@
 export default {
-	transform: {
-		'^.+\\.(js|jsx)$': 'babel-jest',
-	},
+  transform: {
+    '^.+\\.(js|jsx)$': 'babel-jest',
+  },
 };
