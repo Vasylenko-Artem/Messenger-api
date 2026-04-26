@@ -7,8 +7,7 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import authRoutes from './modules/auth/auth.routes.js';
-import messageRoutes from './modules/messages/message.routes.js';
+import { registerModules } from './app.module.js';
 
 dotenv.config();
 
@@ -16,8 +15,7 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 
-app.use('/auth', authRoutes);
-app.use('/messages', messageRoutes);
+registerModules(app);
 
 const swaggerDefinition = {
   openapi: '3.0.0',
