@@ -1,30 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
     provider = "prisma-client-js"
 }
 
 datasource db {
     provider = "postgresql"
-    url      = env("DATABASE_URL")
+}
+
+enum ConversationType {
+    PRIVATE
+    GROUP
+}
+
+enum ParticipantRole {
+    MEMBER
+    ADMIN
+}
+
+enum MessageType {
+    TEXT
+    IMAGE
+    FILE
+}
+
+enum MessageStatusType {
+    SENT
+    DELIVERED
+    READ
 }
 
 model User {
-    id        Int      @id @default(autoincrement())
-    email     String   @unique
-    password  String
-    createdAt DateTime @default(now())
+    id           String   @id @default(uuid())
+    email        String   @unique
+    username     String   @unique
+    passwordHash String
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt
 
-    sentMessages     Message[] @relation("SentMessages")
-    receivedMessages Message[] @relation("ReceivedMessages")
+    // relations
+    participants ConversationParticipant[]
+    messages     Message[]
+    statuses     MessageStatus[]
+}
+
+model Conversation {
+    id        String           @id @default(uuid())
+    type      ConversationType
+    createdAt DateTime         @default(now())
+
+    // relations
+    participants ConversationParticipant[]
+    messages     Message[]
+}
+
+model ConversationParticipant {
+    id             String          @id @default(uuid())
+    conversationId String
+    userId         String
+    role           ParticipantRole @default(MEMBER)
+    joinedAt       DateTime        @default(now())
+
+    // relations
+    conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+    user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([conversationId, userId])
 }
 
 model Message {
-    id        Int      @id @default(autoincrement())
-    content   String
-    createdAt DateTime @default(now())
+    id             String      @id @default(uuid())
+    conversationId String
+    senderId       String
+    content        String
+    type           MessageType @default(TEXT)
+    createdAt      DateTime    @default(now())
+    editedAt       DateTime?
 
-    senderId   Int
-    receiverId Int
+    // relations
+    conversation Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+    sender       User            @relation(fields: [senderId], references: [id])
+    statuses     MessageStatus[]
 
-    sender   User @relation("SentMessages", fields: [senderId], references: [id])
-    receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+    @@index([conversationId])
+}
+
+model MessageStatus {
+    id        String            @id @default(uuid())
+    messageId String
+    userId    String
+    status    MessageStatusType
+    updatedAt DateTime          @updatedAt
+
+    // relations
+    message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+    user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([messageId, userId])
 }
