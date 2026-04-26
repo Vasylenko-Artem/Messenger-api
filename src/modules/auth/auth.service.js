@@ -1,17 +1,19 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
+import { env } from '../../shared/config/env.js';
+
 const SALT_ROUNDS = 10;
 const users = [];
 
 const generateTokens = (username) => {
   const payload = { username };
 
-  const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
+  const accessToken = jwt.sign(payload, env.JWT_ACCESS_SECRET, {
     expiresIn: '1h',
   });
 
-  const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
+  const refreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, {
     expiresIn: '7d',
   });
 
@@ -38,7 +40,7 @@ export const login = async ({ username, password }) => {
 
 export const refreshToken = (token) => {
   try {
-    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    const payload = jwt.verify(token, env.JWT_REFRESH_SECRET);
     return generateTokens(payload.username);
   } catch {
     throw new Error('Invalid refresh token');
