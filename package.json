@@ -4,7 +4,7 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/server.js",
+    "dev": "nodemon --env-file=.env src/server.js",
     "test": "jest",
     "start": "node src/server.js",
     "lint": "eslint .",
@@ -14,8 +14,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@prisma/adapter-pg": "^7.7.0",
-    "@prisma/client": "^7.7.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
@@ -37,6 +37,6 @@
     "jest": "^30.3.0",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.3",
-    "prisma": "^7.7.0"
+    "prisma": "^7.8.0"
   }
 }
