@@ -1,31 +1,115 @@
 import prisma from '../../shared/db/prisma.js';
 
+const conversationTypes = ['PRIVATE', 'GROUP'];
+
+const publicUserSelect = {
+  id: true,
+  email: true,
+  username: true,
+  createdAt: true,
+  updatedAt: true,
+};
+
+const participantInclude = {
+  participants: {
+    include: {
+      user: {
+        select: publicUserSelect,
+      },
+    },
+  },
+};
+
+const messageInclude = {
+  messages: {
+    take: 1,
+    orderBy: {
+      createdAt: 'desc',
+    },
+    include: {
+      sender: {
+        select: {
+          id: true,
+          username: true,
+        },
+      },
+    },
+  },
+};
+
+const normalizeParticipantIds = (userId, participantIds) => {
+  if (!Array.isArray(participantIds)) {
+    throw new Error('Participant ids are required');
+  }
+
+  return [...new Set(participantIds)].filter((id) => id !== userId);
+};
+
+const validateParticipantsExist = async (userIds) => {
+  const usersCount = await prisma.user.count({
+    where: {
+      id: {
+        in: userIds,
+      },
+    },
+  });
+
+  if (usersCount !== userIds.length) {
+    throw new Error('Participant not found');
+  }
+};
+
+const ensureParticipant = async (conversationId, userId) => {
+  const participant = await prisma.conversationParticipant.findFirst({
+    where: {
+      conversationId,
+      userId,
+    },
+  });
+
+  if (!participant) {
+    throw new Error('Forbidden');
+  }
+
+  return participant;
+};
+
 export const createConversation = async (userId, type, participantIds = []) => {
-  const conversation = await prisma.conversation.create({
+  if (!conversationTypes.includes(type)) {
+    throw new Error('Invalid conversation type');
+  }
+
+  const uniqueParticipantIds = normalizeParticipantIds(userId, participantIds);
+
+  if (type === 'PRIVATE' && uniqueParticipantIds.length !== 1) {
+    throw new Error('Private conversation requires one participant');
+  }
+
+  if (type === 'GROUP' && uniqueParticipantIds.length < 1) {
+    throw new Error('Group conversation requires participants');
+  }
+
+  await validateParticipantsExist([userId, ...uniqueParticipantIds]);
+
+  return prisma.conversation.create({
     data: {
       type,
 
       participants: {
         create: [
-          // the creator himself is always a participant
           {
             userId,
             role: 'ADMIN',
           },
-          // other participants
-          ...participantIds.map((id) => ({
+          ...uniqueParticipantIds.map((id) => ({
             userId: id,
             role: 'MEMBER',
           })),
         ],
       },
     },
-    include: {
-      participants: true,
-    },
+    include: participantInclude,
   });
-
-  return conversation;
 };
 
 export const getConversations = async (userId) => {
@@ -38,33 +122,25 @@ export const getConversations = async (userId) => {
       },
     },
     include: {
-      participants: {
-        include: {
-          user: true,
-        },
-      },
-      messages: {
-        take: 1,
-        orderBy: {
-          createdAt: 'desc',
-        },
-      },
+      ...participantInclude,
+      ...messageInclude,
+    },
+    orderBy: {
+      createdAt: 'desc',
     },
   });
 };
 
 export const deleteConversation = async (conversationId, userId) => {
-  // проверка что user в чате
-  const participant = await prisma.conversationParticipant.findFirst({
-    where: {
-      conversationId,
-      userId,
-    },
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
   });
 
-  if (!participant) {
-    throw new Error('Forbidden');
+  if (!conversation) {
+    throw new Error('Conversation not found');
   }
+
+  await ensureParticipant(conversationId, userId);
 
   return prisma.conversation.delete({
     where: { id: conversationId },
