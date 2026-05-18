@@ -9,22 +9,28 @@ export const conversationPaths = {
         content: {
           'application/json': {
             schema: {
-              type: 'object',
-              required: ['type', 'participantIds'],
-              properties: {
-                type: { type: 'string', example: 'private' },
-                participantIds: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
-              },
+              $ref: '#/components/schemas/CreateConversationRequest',
             },
           },
         },
       },
       responses: {
-        201: { description: 'Conversation created' },
-        401: { description: 'Unauthorized' },
+        201: {
+          description: 'Conversation created',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/Conversation',
+              },
+            },
+          },
+        },
+        400: {
+          $ref: '#/components/responses/BadRequest',
+        },
+        401: {
+          $ref: '#/components/responses/Unauthorized',
+        },
       },
     },
 
@@ -35,8 +41,20 @@ export const conversationPaths = {
       responses: {
         200: {
           description: 'List of conversations',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: {
+                  $ref: '#/components/schemas/Conversation',
+                },
+              },
+            },
+          },
         },
-        401: { description: 'Unauthorized' },
+        401: {
+          $ref: '#/components/responses/Unauthorized',
+        },
       },
     },
   },
@@ -55,8 +73,31 @@ export const conversationPaths = {
         },
       ],
       responses: {
-        200: { description: 'Deleted' },
-        401: { description: 'Unauthorized' },
+        200: {
+          description: 'Deleted',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: {
+                    type: 'boolean',
+                    example: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: {
+          $ref: '#/components/responses/Unauthorized',
+        },
+        403: {
+          $ref: '#/components/responses/Forbidden',
+        },
+        404: {
+          $ref: '#/components/responses/NotFound',
+        },
       },
     },
   },
