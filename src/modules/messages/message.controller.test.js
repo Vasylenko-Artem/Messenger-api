@@ -5,12 +5,19 @@ import {
   update,
 } from './message.controller.js';
 import * as messagesService from './message.service.js';
+import { emitToConversation } from '../../socket/index.js';
+import { SOCKET_EVENTS } from '../../socket/events.js';
 
 jest.mock('./message.service.js', () => ({
   sendMessage: jest.fn(),
   getMessages: jest.fn(),
   editMessage: jest.fn(),
   markMessageAsRead: jest.fn(),
+  getMessageConversationId: jest.fn(),
+}));
+
+jest.mock('../../socket/index.js', () => ({
+  emitToConversation: jest.fn(),
 }));
 
 const createResponse = () => ({
@@ -27,6 +34,7 @@ describe('Message Controller', () => {
     it('responds with created message', async () => {
       const message = {
         id: 'message-id',
+        conversationId: 'conversation-id',
         content: 'hello',
       };
 
@@ -49,6 +57,11 @@ describe('Message Controller', () => {
       );
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(message);
+      expect(emitToConversation).toHaveBeenCalledWith(
+        'conversation-id',
+        SOCKET_EVENTS.MESSAGE_CREATED,
+        message
+      );
     });
 
     it('responds with 401 when user is missing from request', async () => {
@@ -109,6 +122,7 @@ describe('Message Controller', () => {
     it('responds with updated message', async () => {
       const message = {
         id: 'message-id',
+        conversationId: 'conversation-id',
         content: 'updated',
       };
 
@@ -133,6 +147,11 @@ describe('Message Controller', () => {
         req.body
       );
       expect(res.json).toHaveBeenCalledWith(message);
+      expect(emitToConversation).toHaveBeenCalledWith(
+        'conversation-id',
+        SOCKET_EVENTS.MESSAGE_UPDATED,
+        message
+      );
     });
 
     it('responds with 404 when message does not exist', async () => {
@@ -162,10 +181,14 @@ describe('Message Controller', () => {
     it('responds with read status', async () => {
       const status = {
         id: 'status-id',
+        messageId: 'message-id',
         status: 'READ',
       };
 
       messagesService.markMessageAsRead.mockResolvedValue(status);
+      messagesService.getMessageConversationId.mockResolvedValue(
+        'conversation-id'
+      );
 
       const req = {
         user: { id: 'user-id' },
@@ -180,6 +203,14 @@ describe('Message Controller', () => {
       expect(messagesService.markMessageAsRead).toHaveBeenCalledWith(
         'message-id',
         'user-id'
+      );
+      expect(messagesService.getMessageConversationId).toHaveBeenCalledWith(
+        'message-id'
+      );
+      expect(emitToConversation).toHaveBeenCalledWith(
+        'conversation-id',
+        SOCKET_EVENTS.MESSAGE_READ_UPDATED,
+        status
       );
       expect(res.json).toHaveBeenCalledWith(status);
     });

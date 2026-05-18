@@ -1,5 +1,6 @@
 import {
   editMessage,
+  getMessageConversationId,
   getMessages,
   markMessageAsRead,
   sendMessage,
@@ -152,6 +153,31 @@ describe('Message Service', () => {
       );
 
       expect(prisma.message.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getMessageConversationId', () => {
+    it('returns message conversation id', async () => {
+      prisma.message.findUnique.mockResolvedValue({
+        id: 'message-id',
+        conversationId: 'conversation-id',
+      });
+
+      await expect(getMessageConversationId('message-id')).resolves.toBe(
+        'conversation-id'
+      );
+
+      expect(prisma.message.findUnique).toHaveBeenCalledWith({
+        where: { id: 'message-id' },
+      });
+    });
+
+    it('throws when message does not exist', async () => {
+      prisma.message.findUnique.mockResolvedValue(null);
+
+      await expect(getMessageConversationId('missing-id')).rejects.toThrow(
+        'Message not found'
+      );
     });
   });
 

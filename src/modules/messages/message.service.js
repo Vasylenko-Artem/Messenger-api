@@ -10,7 +10,7 @@ const messageInclude = {
   statuses: true,
 };
 
-const ensureParticipant = async (conversationId, userId) => {
+export const ensureParticipant = async (conversationId, userId) => {
   const participant = await prisma.conversationParticipant.findFirst({
     where: {
       conversationId,
@@ -35,6 +35,12 @@ const getMessageOrThrow = async (id) => {
   }
 
   return message;
+};
+
+export const getMessageConversationId = async (id) => {
+  const message = await getMessageOrThrow(id);
+
+  return message.conversationId;
 };
 
 export const sendMessage = async (
