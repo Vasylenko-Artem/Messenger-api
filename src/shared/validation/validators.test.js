@@ -1,21 +1,39 @@
+import { ZodError } from 'zod';
+
 import {
-  assertObjectBody,
-  enumValue,
-  minLength,
-  optionalEmail,
-  optionalEnumValue,
-  optionalString,
+  authValidation,
+  conversationsValidation,
+  messagesValidation,
   requireAuthUserId,
-  requiredEmail,
-  requiredString,
-  requiredStringArray,
+  usersValidation,
+  validate,
+  validateBody,
+  validateParams,
 } from './validators.js';
 
 describe('Validators', () => {
-  it('validates object body', () => {
-    expect(() => assertObjectBody({})).not.toThrow();
-    expect(() => assertObjectBody(null)).toThrow('Validation failed');
-    expect(() => assertObjectBody([])).toThrow('Validation failed');
+  it('validates request bodies', () => {
+    const req = {
+      body: {
+        username: ' test ',
+        email: 'test@example.com',
+        password: 'password',
+      },
+    };
+
+    expect(validateBody(authValidation.register, req)).toEqual({
+      username: 'test',
+      email: 'test@example.com',
+      password: 'password',
+    });
+  });
+
+  it('validates request params', () => {
+    expect(
+      validateParams(messagesValidation.idParams, {
+        params: { id: 'message-id' },
+      })
+    ).toEqual({ id: 'message-id' });
   });
 
   it('returns authenticated user id', () => {
@@ -23,41 +41,107 @@ describe('Validators', () => {
     expect(() => requireAuthUserId({})).toThrow('Unauthorized');
   });
 
-  it('validates required strings', () => {
-    expect(requiredString(' value ', 'field')).toBe('value');
-    expect(() => requiredString('', 'field')).toThrow('Validation failed');
-    expect(() => requiredString(1, 'field')).toThrow('Validation failed');
+  it('validates auth payloads', () => {
+    expect(
+      validate(authValidation.login, {
+        username: ' test ',
+        password: ' password ',
+      })
+    ).toEqual({
+      username: 'test',
+      password: 'password',
+    });
+
+    expect(() =>
+      validate(authValidation.register, {
+        username: '',
+        email: 'bad-email',
+        password: '123',
+      })
+    ).toThrow(ZodError);
   });
 
-  it('validates optional strings', () => {
-    expect(optionalString(undefined, 'field')).toBeUndefined();
-    expect(optionalString(' value ', 'field')).toBe('value');
+  it('validates user update payloads', () => {
+    expect(
+      validate(usersValidation.updateMe, {
+        username: ' new ',
+        email: 'new@example.com',
+        password: 'new-password',
+      })
+    ).toEqual({
+      username: 'new',
+      email: 'new@example.com',
+      password: 'new-password',
+    });
+
+    expect(() => validate(usersValidation.updateMe, {})).toThrow(ZodError);
+    expect(() =>
+      validate(usersValidation.updateMe, { email: 'bad-email' })
+    ).toThrow(ZodError);
   });
 
-  it('validates emails', () => {
-    expect(requiredEmail('test@example.com')).toBe('test@example.com');
-    expect(optionalEmail(undefined)).toBeUndefined();
-    expect(optionalEmail('test@example.com')).toBe('test@example.com');
-    expect(() => requiredEmail('bad-email')).toThrow('Validation failed');
+  it('validates conversation payloads and params', () => {
+    expect(
+      validate(conversationsValidation.create, {
+        type: 'PRIVATE',
+        participantIds: [' participant-id '],
+      })
+    ).toEqual({
+      type: 'PRIVATE',
+      participantIds: ['participant-id'],
+    });
+
+    expect(
+      validate(conversationsValidation.addParticipants, {
+        participantIds: [' user-id '],
+      })
+    ).toEqual({
+      participantIds: ['user-id'],
+    });
+
+    expect(validate(conversationsValidation.idParams, { id: 'id' })).toEqual({
+      id: 'id',
+    });
+
+    expect(() =>
+      validate(conversationsValidation.create, {
+        type: 'UNKNOWN',
+        participantIds: [],
+      })
+    ).toThrow(ZodError);
   });
 
-  it('validates minimum length', () => {
-    expect(minLength('password', 'password', 6)).toBe('password');
-    expect(() => minLength('123', 'password', 6)).toThrow('Validation failed');
-  });
+  it('validates message payloads and params', () => {
+    expect(
+      validate(messagesValidation.create, {
+        conversationId: ' conversation-id ',
+        content: ' hello ',
+        type: 'TEXT',
+      })
+    ).toEqual({
+      conversationId: 'conversation-id',
+      content: 'hello',
+      type: 'TEXT',
+    });
 
-  it('validates required string arrays', () => {
-    expect(requiredStringArray([' a ', 'b'], 'ids')).toEqual(['a', 'b']);
-    expect(() => requiredStringArray([], 'ids')).toThrow('Validation failed');
-    expect(() => requiredStringArray([''], 'ids')).toThrow('Validation failed');
-  });
+    expect(
+      validate(messagesValidation.update, { content: ' updated ' })
+    ).toEqual({
+      content: 'updated',
+    });
 
-  it('validates enum values', () => {
-    expect(enumValue('TEXT', 'type', ['TEXT'])).toBe('TEXT');
-    expect(optionalEnumValue(undefined, 'type', ['TEXT'])).toBeUndefined();
-    expect(optionalEnumValue('TEXT', 'type', ['TEXT'])).toBe('TEXT');
-    expect(() => enumValue('IMAGE', 'type', ['TEXT'])).toThrow(
-      'Validation failed'
-    );
+    expect(
+      validate(messagesValidation.getByConversationParams, {
+        conversationId: 'conversation-id',
+      })
+    ).toEqual({ conversationId: 'conversation-id' });
+
+    expect(() =>
+      validate(messagesValidation.create, {
+        conversationId: '',
+        content: '',
+        type: 'UNKNOWN',
+      })
+    ).toThrow(ZodError);
   });
 });

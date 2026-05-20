@@ -190,7 +190,11 @@ describe('Users Controller', () => {
 
       expect(usersService.updateCurrentUser).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'No fields to update' })
+        expect.objectContaining({
+          issues: expect.arrayContaining([
+            expect.objectContaining({ message: 'No fields to update' }),
+          ]),
+        })
       );
     });
   });

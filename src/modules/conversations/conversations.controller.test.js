@@ -86,7 +86,11 @@ describe('Conversations Controller', () => {
 
       expect(conversationsService.createConversation).not.toHaveBeenCalled();
       expect(next).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'Validation failed' })
+        expect.objectContaining({
+          issues: expect.arrayContaining([
+            expect.objectContaining({ path: ['type'] }),
+          ]),
+        })
       );
     });
   });

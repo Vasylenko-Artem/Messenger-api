@@ -1,6 +1,12 @@
 import { Prisma } from '@prisma/client';
+import { ZodError } from 'zod';
 
-import { HttpError, conflict, notFound } from '../errors/http-error.js';
+import {
+  HttpError,
+  badRequest,
+  conflict,
+  notFound,
+} from '../errors/http-error.js';
 import { logger } from '../logger/logger.js';
 
 const knownErrorStatusByMessage = {
@@ -40,9 +46,28 @@ const normalizePrismaError = (error) => {
   return null;
 };
 
+const normalizeZodError = (error) => {
+  if (!(error instanceof ZodError)) {
+    return null;
+  }
+
+  return badRequest(
+    'Validation failed',
+    error.issues.map((issue) => ({
+      field: issue.path.join('.') || 'body',
+      message: issue.message,
+    }))
+  );
+};
+
 export const normalizeError = (error) => {
   if (error instanceof HttpError) {
     return error;
+  }
+
+  const zodError = normalizeZodError(error);
+  if (zodError) {
+    return zodError;
   }
 
   const prismaError = normalizePrismaError(error);

@@ -1,14 +1,28 @@
-import { ValidationError, unauthorized } from '../errors/http-error.js';
+import { z } from 'zod';
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { unauthorized } from '../errors/http-error.js';
 
-export const assertObjectBody = (body) => {
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    throw new ValidationError('Validation failed', [
-      { field: 'body', message: 'Request body must be an object' },
-    ]);
-  }
-};
+const requiredString = (field) =>
+  z
+    .string({ error: `${field} is required` })
+    .trim()
+    .min(1, { error: `${field} is required` });
+
+const requiredStringArray = (field) =>
+  z
+    .array(requiredString(field), {
+      error: `${field} must be a non-empty array`,
+    })
+    .min(1, { error: `${field} must be a non-empty array` });
+
+const atLeastOneField = () => (data) =>
+  Object.values(data).some((value) => value !== undefined);
+
+export const validate = (schema, data) => schema.parse(data);
+
+export const validateBody = (schema, req) => validate(schema, req.body);
+
+export const validateParams = (schema, req) => validate(schema, req.params);
 
 export const requireAuthUserId = (req) => {
   const id = req.user?.id;
@@ -20,81 +34,87 @@ export const requireAuthUserId = (req) => {
   return id;
 };
 
-export const requiredString = (value, field) => {
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new ValidationError('Validation failed', [
-      { field, message: `${field} is required` },
-    ]);
-  }
+export const authValidation = {
+  register: z
+    .object({
+      username: requiredString('username'),
+      email: requiredString('email').email({ error: 'email must be valid' }),
+      password: requiredString('password').min(6, {
+        error: 'password must be at least 6 characters',
+      }),
+    })
+    .strict(),
 
-  return value.trim();
+  login: z
+    .object({
+      username: requiredString('username'),
+      password: requiredString('password'),
+    })
+    .strict(),
 };
 
-export const optionalString = (value, field) => {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  return requiredString(value, field);
+export const usersValidation = {
+  updateMe: z
+    .object({
+      username: requiredString('username').optional(),
+      email: requiredString('email')
+        .email({ error: 'email must be valid' })
+        .optional(),
+      password: requiredString('password')
+        .min(6, { error: 'password must be at least 6 characters' })
+        .optional(),
+    })
+    .strict()
+    .refine(atLeastOneField(), { error: 'No fields to update' }),
 };
 
-export const requiredEmail = (value, field = 'email') => {
-  const email = requiredString(value, field);
+export const conversationsValidation = {
+  create: z
+    .object({
+      type: z.enum(['PRIVATE', 'GROUP'], {
+        error: 'type must be one of: PRIVATE, GROUP',
+      }),
+      participantIds: requiredStringArray('participantIds'),
+    })
+    .strict(),
 
-  if (!emailPattern.test(email)) {
-    throw new ValidationError('Validation failed', [
-      { field, message: `${field} must be a valid email` },
-    ]);
-  }
+  addParticipants: z
+    .object({
+      participantIds: requiredStringArray('participantIds'),
+    })
+    .strict(),
 
-  return email;
+  idParams: z
+    .object({
+      id: requiredString('id'),
+    })
+    .strict(),
 };
 
-export const optionalEmail = (value, field = 'email') => {
-  if (value === undefined) {
-    return undefined;
-  }
+export const messagesValidation = {
+  create: z
+    .object({
+      conversationId: requiredString('conversationId'),
+      content: requiredString('content'),
+      type: z.enum(['TEXT', 'IMAGE', 'FILE']).optional(),
+    })
+    .strict(),
 
-  return requiredEmail(value, field);
-};
+  getByConversationParams: z
+    .object({
+      conversationId: requiredString('conversationId'),
+    })
+    .strict(),
 
-export const minLength = (value, field, min) => {
-  if (value.length < min) {
-    throw new ValidationError('Validation failed', [
-      { field, message: `${field} must be at least ${min} characters` },
-    ]);
-  }
+  update: z
+    .object({
+      content: requiredString('content'),
+    })
+    .strict(),
 
-  return value;
-};
-
-export const requiredStringArray = (value, field) => {
-  if (!Array.isArray(value) || value.length < 1) {
-    throw new ValidationError('Validation failed', [
-      { field, message: `${field} must be a non-empty array` },
-    ]);
-  }
-
-  return value.map((item, index) => requiredString(item, `${field}.${index}`));
-};
-
-export const enumValue = (value, field, allowedValues) => {
-  if (!allowedValues.includes(value)) {
-    throw new ValidationError('Validation failed', [
-      {
-        field,
-        message: `${field} must be one of: ${allowedValues.join(', ')}`,
-      },
-    ]);
-  }
-
-  return value;
-};
-
-export const optionalEnumValue = (value, field, allowedValues) => {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  return enumValue(value, field, allowedValues);
+  idParams: z
+    .object({
+      id: requiredString('id'),
+    })
+    .strict(),
 };

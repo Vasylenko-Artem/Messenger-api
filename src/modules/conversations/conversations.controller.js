@@ -1,26 +1,15 @@
 import * as conversationsService from './conversations.service.js';
 import {
-  assertObjectBody,
-  enumValue,
+  conversationsValidation,
   requireAuthUserId,
-  requiredString,
-  requiredStringArray,
+  validateBody,
+  validateParams,
 } from '../../shared/validation/validators.js';
-
-const conversationTypes = ['PRIVATE', 'GROUP'];
 
 export const create = async (req, res, next) => {
   try {
     const userId = requireAuthUserId(req);
-    assertObjectBody(req.body);
-
-    const body = {
-      type: enumValue(req.body.type, 'type', conversationTypes),
-      participantIds: requiredStringArray(
-        req.body.participantIds,
-        'participantIds'
-      ),
-    };
+    const body = validateBody(conversationsValidation.create, req);
 
     const conversation = await conversationsService.createConversation(
       userId,
@@ -49,12 +38,10 @@ export const getConversations = async (req, res, next) => {
 export const addParticipants = async (req, res, next) => {
   try {
     const userId = requireAuthUserId(req);
-    assertObjectBody(req.body);
-
-    const id = requiredString(req.params.id, 'id');
-    const participantIds = requiredStringArray(
-      req.body.participantIds,
-      'participantIds'
+    const { id } = validateParams(conversationsValidation.idParams, req);
+    const { participantIds } = validateBody(
+      conversationsValidation.addParticipants,
+      req
     );
 
     const conversation =
@@ -73,7 +60,7 @@ export const addParticipants = async (req, res, next) => {
 export const remove = async (req, res, next) => {
   try {
     const userId = requireAuthUserId(req);
-    const id = requiredString(req.params.id, 'id');
+    const { id } = validateParams(conversationsValidation.idParams, req);
 
     await conversationsService.deleteConversation(id, userId);
 

@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 
 import { HttpError, ValidationError } from '../errors/http-error.js';
 import { errorHandler } from './error.middleware.js';
@@ -63,6 +64,50 @@ describe('Error Middleware', () => {
     expect(res.json).toHaveBeenCalledWith({
       message: 'Invalid input',
       details,
+    });
+  });
+
+  it('maps Zod validation errors to bad request details', () => {
+    const res = createResponse();
+
+    try {
+      z.object({
+        email: z.string().email(),
+      }).parse({ email: 'bad-email' });
+    } catch (error) {
+      errorHandler(error, {}, res, jest.fn());
+    }
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Validation failed',
+      details: [
+        expect.objectContaining({
+          field: 'email',
+          message: expect.any(String),
+        }),
+      ],
+    });
+  });
+
+  it('maps root Zod validation errors to body field', () => {
+    const res = createResponse();
+
+    try {
+      z.never().parse('value');
+    } catch (error) {
+      errorHandler(error, {}, res, jest.fn());
+    }
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Validation failed',
+      details: [
+        expect.objectContaining({
+          field: 'body',
+          message: expect.any(String),
+        }),
+      ],
     });
   });
 
