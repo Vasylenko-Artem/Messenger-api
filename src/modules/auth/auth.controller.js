@@ -1,5 +1,33 @@
 import * as authService from './auth.service.js';
 
+const durationToMs = (value) => {
+  const match = /^(\d+)([smhd])$/.exec(value);
+
+  if (!match) {
+    throw new Error(`Invalid TTL value: ${value}`);
+  }
+
+  const amount = Number(match[1]);
+  const unit = match[2]; // index
+
+  const unitToMs = {
+    s: 1000,
+    m: 1000 * 60,
+    h: 1000 * 60 * 60,
+    d: 1000 * 60 * 60 * 24,
+  };
+
+  return amount * unitToMs[unit];
+};
+
+const getCookieOptions = (ttl) => ({
+  httpOnly: true,
+  // secure: true, // true for HTTPS
+  secure: false,
+  sameSite: 'strict',
+  maxAge: durationToMs(ttl),
+});
+
 export const register = async (req, res, next) => {
   try {
     const user = await authService.register(req.body);
@@ -14,20 +42,16 @@ export const login = async (req, res, next) => {
     const { accessToken, refreshToken } = await authService.login(req.body);
 
     res
-      .cookie('accessToken', accessToken, {
-        httpOnly: true,
-        // secure: true, // true for HTTPS
-        secure: false,
-        sameSite: 'strict',
-        maxAge: 1000 * 60 * 60, // 1h
-      })
-      .cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        // secure: true,
-        secure: false,
-        sameSite: 'strict',
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 7d
-      })
+      .cookie(
+        'accessToken',
+        accessToken,
+        getCookieOptions(process.env.JWT_ACCES_TOKEN_TTL)
+      )
+      .cookie(
+        'refreshToken',
+        refreshToken,
+        getCookieOptions(process.env.JWT_REFRESH_TOKEN_TTL)
+      )
       .json({ message: 'Logged in' });
   } catch (error) {
     next(error);
@@ -45,20 +69,16 @@ export const refreshToken = async (req, res, next) => {
     const { accessToken, refreshToken } = authService.refreshToken(token);
 
     res
-      .cookie('accessToken', accessToken, {
-        httpOnly: true,
-        // secure: true,
-        secure: false,
-        sameSite: 'strict',
-        maxAge: 1000 * 60 * 60,
-      })
-      .cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        // secure: true,
-        secure: false,
-        sameSite: 'strict',
-        maxAge: 1000 * 60 * 60 * 24 * 7,
-      })
+      .cookie(
+        'accessToken',
+        accessToken,
+        getCookieOptions(process.env.JWT_ACCES_TOKEN_TTL)
+      )
+      .cookie(
+        'refreshToken',
+        refreshToken,
+        getCookieOptions(process.env.JWT_REFRESH_TOKEN_TTL)
+      )
       .json({ message: 'Token refreshed' });
   } catch (error) {
     next(error);

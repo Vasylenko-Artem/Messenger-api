@@ -22,6 +22,11 @@ const createResponse = () => ({
 
 describe('Auth Controller', () => {
   beforeEach(() => {
+    process.env.JWT_ACCES_TOKEN_TTL = '2h';
+    process.env.JWT_REFRESH_TOKEN_TTL = '7d';
+  });
+
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
@@ -86,7 +91,7 @@ describe('Auth Controller', () => {
           httpOnly: true,
           secure: false,
           sameSite: 'strict',
-          maxAge: 1000 * 60 * 60,
+          maxAge: 1000 * 60 * 60 * 2,
         }
       );
       expect(res.cookie).toHaveBeenNthCalledWith(
@@ -155,7 +160,7 @@ describe('Auth Controller', () => {
           httpOnly: true,
           secure: false,
           sameSite: 'strict',
-          maxAge: 1000 * 60 * 60,
+          maxAge: 1000 * 60 * 60 * 2,
         }
       );
       expect(res.cookie).toHaveBeenNthCalledWith(
