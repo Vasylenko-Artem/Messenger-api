@@ -14,11 +14,31 @@ const swaggerDefinition = {
   info: {
     title: 'Messaging API',
     version: '1.0.0',
-    description: 'API for auth and messaging system',
+    description:
+      'API for auth and messaging system. Use Auth -> Login first; Swagger UI will keep httpOnly cookies for protected requests.',
   },
   servers: [
     {
-      url: 'http://localhost:5001',
+      url: '/',
+      description: 'Current API host',
+    },
+  ],
+  tags: [
+    {
+      name: 'Auth',
+      description: 'Registration, login, token refresh and logout',
+    },
+    {
+      name: 'Users',
+      description: 'Current user profile',
+    },
+    {
+      name: 'Conversations',
+      description: 'Conversation management',
+    },
+    {
+      name: 'Messages',
+      description: 'Message management',
     },
   ],
   components: {
@@ -41,10 +61,27 @@ const swaggerDefinition = {
       ...messageSchemas,
       ErrorResponse: {
         type: 'object',
+        required: ['message'],
         properties: {
           message: {
             type: 'string',
             example: 'Error message',
+          },
+          details: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                field: {
+                  type: 'string',
+                  example: 'email',
+                },
+                message: {
+                  type: 'string',
+                  example: 'email must be a valid email',
+                },
+              },
+            },
           },
         },
       },
@@ -82,6 +119,16 @@ const swaggerDefinition = {
       },
       NotFound: {
         description: 'Not found',
+        content: {
+          'application/json': {
+            schema: {
+              $ref: '#/components/schemas/ErrorResponse',
+            },
+          },
+        },
+      },
+      Conflict: {
+        description: 'Conflict',
         content: {
           'application/json': {
             schema: {

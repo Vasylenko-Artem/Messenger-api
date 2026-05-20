@@ -52,6 +52,9 @@ export const userPaths = {
         400: {
           $ref: '#/components/responses/BadRequest',
         },
+        409: {
+          $ref: '#/components/responses/Conflict',
+        },
         401: {
           $ref: '#/components/responses/Unauthorized',
         },

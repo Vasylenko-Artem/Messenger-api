@@ -27,6 +27,9 @@ export const authPaths = {
         400: {
           $ref: '#/components/responses/BadRequest',
         },
+        409: {
+          $ref: '#/components/responses/Conflict',
+        },
       },
     },
   },
@@ -67,6 +70,9 @@ export const authPaths = {
         },
         401: {
           $ref: '#/components/responses/Unauthorized',
+        },
+        400: {
+          $ref: '#/components/responses/BadRequest',
         },
       },
     },

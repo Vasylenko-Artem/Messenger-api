@@ -19,11 +19,24 @@ app.use(express.json());
 
 registerModules(app);
 
+app.get('/api/swagger.json', (req, res) => {
+  res.json(swaggerSpec);
+});
+
 app.use(
   '/api',
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec, {
     withCredentials: true,
+    swaggerOptions: {
+      persistAuthorization: true,
+      withCredentials: true,
+      requestInterceptor: (request) => {
+        request.credentials = 'include';
+        return request;
+      },
+    },
+    customSiteTitle: 'Messaging API Docs',
   })
 );
 

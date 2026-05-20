@@ -3,7 +3,7 @@ export const conversationPaths = {
     post: {
       summary: 'Create new conversation',
       tags: ['Conversations'],
-      security: [{ bearerAuth: [] }],
+      security: [{ accessTokenCookie: [] }],
       requestBody: {
         required: true,
         content: {
@@ -37,7 +37,7 @@ export const conversationPaths = {
     get: {
       summary: 'Get user conversations',
       tags: ['Conversations'],
-      security: [{ bearerAuth: [] }],
+      security: [{ accessTokenCookie: [] }],
       responses: {
         200: {
           description: 'List of conversations',
@@ -63,7 +63,7 @@ export const conversationPaths = {
     delete: {
       summary: 'Delete conversation',
       tags: ['Conversations'],
-      security: [{ bearerAuth: [] }],
+      security: [{ accessTokenCookie: [] }],
       parameters: [
         {
           name: 'id',
@@ -106,7 +106,7 @@ export const conversationPaths = {
     post: {
       summary: 'Add participants to group conversation',
       tags: ['Conversations'],
-      security: [{ bearerAuth: [] }],
+      security: [{ accessTokenCookie: [] }],
       parameters: [
         {
           name: 'id',
