@@ -1,4 +1,9 @@
 import prisma from '../../shared/db/prisma.js';
+import {
+  badRequest,
+  forbidden,
+  notFound,
+} from '../../shared/errors/http-error.js';
 
 const conversationTypes = ['PRIVATE', 'GROUP'];
 
@@ -39,7 +44,7 @@ const messageInclude = {
 
 const normalizeParticipantIds = (userId, participantIds) => {
   if (!Array.isArray(participantIds)) {
-    throw new Error('Participant ids are required');
+    throw badRequest('Participant ids are required');
   }
 
   return [...new Set(participantIds)].filter((id) => id !== userId);
@@ -55,7 +60,7 @@ const validateParticipantsExist = async (userIds) => {
   });
 
   if (usersCount !== userIds.length) {
-    throw new Error('Participant not found');
+    throw notFound('Participant not found');
   }
 };
 
@@ -68,7 +73,7 @@ const ensureParticipant = async (conversationId, userId) => {
   });
 
   if (!participant) {
-    throw new Error('Forbidden');
+    throw forbidden();
   }
 
   return participant;
@@ -80,7 +85,7 @@ const getConversationOrThrow = async (conversationId) => {
   });
 
   if (!conversation) {
-    throw new Error('Conversation not found');
+    throw notFound('Conversation not found');
   }
 
   return conversation;
@@ -88,17 +93,17 @@ const getConversationOrThrow = async (conversationId) => {
 
 export const createConversation = async (userId, type, participantIds = []) => {
   if (!conversationTypes.includes(type)) {
-    throw new Error('Invalid conversation type');
+    throw badRequest('Invalid conversation type');
   }
 
   const uniqueParticipantIds = normalizeParticipantIds(userId, participantIds);
 
   if (type === 'PRIVATE' && uniqueParticipantIds.length !== 1) {
-    throw new Error('Private conversation requires one participant');
+    throw badRequest('Private conversation requires one participant');
   }
 
   if (type === 'GROUP' && uniqueParticipantIds.length < 1) {
-    throw new Error('Group conversation requires participants');
+    throw badRequest('Group conversation requires participants');
   }
 
   await validateParticipantsExist([userId, ...uniqueParticipantIds]);
@@ -151,19 +156,19 @@ export const addParticipantsToConversation = async (
   const conversation = await getConversationOrThrow(conversationId);
 
   if (conversation.type !== 'GROUP') {
-    throw new Error('Cannot add participants to private conversation');
+    throw badRequest('Cannot add participants to private conversation');
   }
 
   const currentParticipant = await ensureParticipant(conversationId, userId);
 
   if (currentParticipant.role !== 'ADMIN') {
-    throw new Error('Forbidden');
+    throw forbidden();
   }
 
   const uniqueParticipantIds = normalizeParticipantIds(userId, participantIds);
 
   if (uniqueParticipantIds.length < 1) {
-    throw new Error('Participant ids are required');
+    throw badRequest('Participant ids are required');
   }
 
   await validateParticipantsExist(uniqueParticipantIds);

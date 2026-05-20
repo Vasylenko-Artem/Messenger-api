@@ -1,4 +1,4 @@
-import { HttpError } from '../errors/http-error.js';
+import { HttpError, ValidationError } from '../errors/http-error.js';
 import { errorHandler } from './error.middleware.js';
 
 const createResponse = () => ({
@@ -26,13 +26,24 @@ describe('Error Middleware', () => {
     expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden' });
   });
 
-  it('responds with 400 for validation errors by default', () => {
+  it('responds with 400 for validation errors', () => {
     const res = createResponse();
 
-    errorHandler(new Error('Invalid input'), {}, res, jest.fn());
+    errorHandler(new ValidationError('Invalid input'), {}, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ message: 'Invalid input' });
+  });
+
+  it('hides unknown internal errors', () => {
+    const res = createResponse();
+
+    errorHandler(new Error('Unexpected failure'), {}, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Internal server error',
+    });
   });
 
   it('delegates when headers were already sent', () => {

@@ -52,7 +52,7 @@ describe('Conversations Controller', () => {
       expect(res.json).toHaveBeenCalledWith(conversation);
     });
 
-    it('responds with 401 when user is missing from request', async () => {
+    it('passes 401 error when user is missing from request', async () => {
       const req = {
         body: {
           type: 'PRIVATE',
@@ -60,18 +60,18 @@ describe('Conversations Controller', () => {
         },
       };
       const res = createResponse();
+      const next = jest.fn();
 
-      await create(req, res);
+      await create(req, res, next);
 
       expect(conversationsService.createConversation).not.toHaveBeenCalled();
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Unauthorized', statusCode: 401 })
+      );
+      expect(res.status).not.toHaveBeenCalled();
     });
 
-    it('responds with 400 when validation fails', async () => {
-      const error = new Error('Invalid conversation type');
-      conversationsService.createConversation.mockRejectedValue(error);
-
+    it('passes 400 error when validation fails', async () => {
       const req = {
         user: { id: 'user-id' },
         body: {
@@ -84,7 +84,10 @@ describe('Conversations Controller', () => {
 
       await create(req, res, next);
 
-      expect(next).toHaveBeenCalledWith(error);
+      expect(conversationsService.createConversation).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Validation failed' })
+      );
     });
   });
 
@@ -107,15 +110,18 @@ describe('Conversations Controller', () => {
       expect(res.json).toHaveBeenCalledWith(conversations);
     });
 
-    it('responds with 401 when user is missing from request', async () => {
+    it('passes 401 error when user is missing from request', async () => {
       const req = {};
       const res = createResponse();
+      const next = jest.fn();
 
-      await getConversations(req, res);
+      await getConversations(req, res, next);
 
       expect(conversationsService.getConversations).not.toHaveBeenCalled();
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Unauthorized', statusCode: 401 })
+      );
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
@@ -149,7 +155,7 @@ describe('Conversations Controller', () => {
       expect(res.json).toHaveBeenCalledWith(conversation);
     });
 
-    it('responds with 401 when user is missing from request', async () => {
+    it('passes 401 error when user is missing from request', async () => {
       const req = {
         params: {
           id: 'conversation-id',
@@ -159,14 +165,17 @@ describe('Conversations Controller', () => {
         },
       };
       const res = createResponse();
+      const next = jest.fn();
 
-      await addParticipants(req, res);
+      await addParticipants(req, res, next);
 
       expect(
         conversationsService.addParticipantsToConversation
       ).not.toHaveBeenCalled();
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Unauthorized', statusCode: 401 })
+      );
+      expect(res.status).not.toHaveBeenCalled();
     });
 
     it('passes service errors to next', async () => {

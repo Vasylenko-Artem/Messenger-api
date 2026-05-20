@@ -39,15 +39,18 @@ describe('Users Controller', () => {
       expect(res.json).toHaveBeenCalledWith({ user });
     });
 
-    it('responds with 401 when user is missing from request', async () => {
+    it('passes 401 error when user is missing from request', async () => {
       const req = {};
       const res = createResponse();
+      const next = jest.fn();
 
-      await getMe(req, res);
+      await getMe(req, res, next);
 
       expect(usersService.getCurrentUser).not.toHaveBeenCalled();
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Unauthorized', statusCode: 401 })
+      );
+      expect(res.status).not.toHaveBeenCalled();
     });
 
     it('responds with 404 when user does not exist', async () => {
@@ -97,25 +100,25 @@ describe('Users Controller', () => {
       expect(res.json).toHaveBeenCalledWith({ user });
     });
 
-    it('responds with 401 when user is missing from request', async () => {
+    it('passes 401 error when user is missing from request', async () => {
       const req = {
         body: {
           username: 'updated',
         },
       };
       const res = createResponse();
+      const next = jest.fn();
 
-      await updateMe(req, res);
+      await updateMe(req, res, next);
 
       expect(usersService.updateCurrentUser).not.toHaveBeenCalled();
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Unauthorized', statusCode: 401 })
+      );
+      expect(res.status).not.toHaveBeenCalled();
     });
 
-    it('responds with 400 when update validation fails', async () => {
-      const error = new Error('No fields to update');
-      usersService.updateCurrentUser.mockRejectedValue(error);
-
+    it('passes 400 error when update validation fails', async () => {
       const req = {
         user: {
           id: 'user-id',
@@ -127,7 +130,10 @@ describe('Users Controller', () => {
 
       await updateMe(req, res, next);
 
-      expect(next).toHaveBeenCalledWith(error);
+      expect(usersService.updateCurrentUser).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'No fields to update' })
+      );
     });
   });
 });

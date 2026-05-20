@@ -1,24 +1,27 @@
 import * as messagesService from './message.service.js';
 import { emitToConversation } from '../../socket/index.js';
 import { SOCKET_EVENTS } from '../../socket/events.js';
+import {
+  assertObjectBody,
+  optionalEnumValue,
+  requireAuthUserId,
+  requiredString,
+} from '../../shared/validation/validators.js';
 
-const getUserId = (req, res) => {
-  if (!req.user?.id) {
-    res.status(401).json({ message: 'Unauthorized' });
-    return null;
-  }
-
-  return req.user.id;
-};
+const messageTypes = ['TEXT', 'IMAGE', 'FILE'];
 
 export const create = async (req, res, next) => {
   try {
-    const userId = getUserId(req, res);
-    if (!userId) {
-      return;
-    }
+    const userId = requireAuthUserId(req);
+    assertObjectBody(req.body);
 
-    const message = await messagesService.sendMessage(userId, req.body);
+    const body = {
+      conversationId: requiredString(req.body.conversationId, 'conversationId'),
+      content: requiredString(req.body.content, 'content'),
+      type: optionalEnumValue(req.body.type, 'type', messageTypes),
+    };
+
+    const message = await messagesService.sendMessage(userId, body);
 
     emitToConversation(
       message.conversationId,
@@ -34,15 +37,13 @@ export const create = async (req, res, next) => {
 
 export const getByConversation = async (req, res, next) => {
   try {
-    const userId = getUserId(req, res);
-    if (!userId) {
-      return;
-    }
-
-    const messages = await messagesService.getMessages(
+    const userId = requireAuthUserId(req);
+    const conversationId = requiredString(
       req.params.conversationId,
-      userId
+      'conversationId'
     );
+
+    const messages = await messagesService.getMessages(conversationId, userId);
 
     res.json(messages);
   } catch (error) {
@@ -52,16 +53,15 @@ export const getByConversation = async (req, res, next) => {
 
 export const update = async (req, res, next) => {
   try {
-    const userId = getUserId(req, res);
-    if (!userId) {
-      return;
-    }
+    const userId = requireAuthUserId(req);
+    assertObjectBody(req.body);
 
-    const message = await messagesService.editMessage(
-      req.params.id,
-      userId,
-      req.body
-    );
+    const id = requiredString(req.params.id, 'id');
+    const body = {
+      content: requiredString(req.body.content, 'content'),
+    };
+
+    const message = await messagesService.editMessage(id, userId, body);
 
     emitToConversation(
       message.conversationId,
@@ -77,15 +77,10 @@ export const update = async (req, res, next) => {
 
 export const markAsRead = async (req, res, next) => {
   try {
-    const userId = getUserId(req, res);
-    if (!userId) {
-      return;
-    }
+    const userId = requireAuthUserId(req);
+    const id = requiredString(req.params.id, 'id');
 
-    const status = await messagesService.markMessageAsRead(
-      req.params.id,
-      userId
-    );
+    const status = await messagesService.markMessageAsRead(id, userId);
     const conversationId = await messagesService.getMessageConversationId(
       status.messageId
     );

@@ -1,4 +1,9 @@
 import prisma from '../../shared/db/prisma.js';
+import {
+  badRequest,
+  forbidden,
+  notFound,
+} from '../../shared/errors/http-error.js';
 
 const messageInclude = {
   sender: {
@@ -19,7 +24,7 @@ export const ensureParticipant = async (conversationId, userId) => {
   });
 
   if (!participant) {
-    throw new Error('Forbidden');
+    throw forbidden();
   }
 
   return participant;
@@ -31,7 +36,7 @@ const getMessageOrThrow = async (id) => {
   });
 
   if (!message) {
-    throw new Error('Message not found');
+    throw notFound('Message not found');
   }
 
   return message;
@@ -48,11 +53,11 @@ export const sendMessage = async (
   { conversationId, content, type = 'TEXT' } = {}
 ) => {
   if (!conversationId) {
-    throw new Error('Conversation id is required');
+    throw badRequest('Conversation id is required');
   }
 
   if (typeof content !== 'string' || !content.trim()) {
-    throw new Error('Content is required');
+    throw badRequest('Content is required');
   }
 
   await ensureParticipant(conversationId, userId);
@@ -78,7 +83,7 @@ export const sendMessage = async (
 
 export const getMessages = async (conversationId, userId) => {
   if (!conversationId) {
-    throw new Error('Conversation id is required');
+    throw badRequest('Conversation id is required');
   }
 
   await ensureParticipant(conversationId, userId);
@@ -96,13 +101,13 @@ export const getMessages = async (conversationId, userId) => {
 
 export const editMessage = async (id, userId, { content } = {}) => {
   if (typeof content !== 'string' || !content.trim()) {
-    throw new Error('Content is required');
+    throw badRequest('Content is required');
   }
 
   const message = await getMessageOrThrow(id);
 
   if (message.senderId !== userId) {
-    throw new Error('Forbidden');
+    throw forbidden();
   }
 
   return prisma.message.update({

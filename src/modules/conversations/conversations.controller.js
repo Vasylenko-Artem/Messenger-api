@@ -1,27 +1,31 @@
 import * as conversationsService from './conversations.service.js';
+import {
+  assertObjectBody,
+  enumValue,
+  requireAuthUserId,
+  requiredString,
+  requiredStringArray,
+} from '../../shared/validation/validators.js';
 
-const getUserId = (req, res) => {
-  if (!req.user?.id) {
-    res.status(401).json({ message: 'Unauthorized' });
-    return null;
-  }
-
-  return req.user.id;
-};
+const conversationTypes = ['PRIVATE', 'GROUP'];
 
 export const create = async (req, res, next) => {
   try {
-    const userId = getUserId(req, res);
-    if (!userId) {
-      return;
-    }
+    const userId = requireAuthUserId(req);
+    assertObjectBody(req.body);
 
-    const { type, participantIds } = req.body;
+    const body = {
+      type: enumValue(req.body.type, 'type', conversationTypes),
+      participantIds: requiredStringArray(
+        req.body.participantIds,
+        'participantIds'
+      ),
+    };
 
     const conversation = await conversationsService.createConversation(
       userId,
-      type,
-      participantIds
+      body.type,
+      body.participantIds
     );
 
     res.status(201).json(conversation);
@@ -32,10 +36,7 @@ export const create = async (req, res, next) => {
 
 export const getConversations = async (req, res, next) => {
   try {
-    const userId = getUserId(req, res);
-    if (!userId) {
-      return;
-    }
+    const userId = requireAuthUserId(req);
 
     const conversations = await conversationsService.getConversations(userId);
 
@@ -47,13 +48,14 @@ export const getConversations = async (req, res, next) => {
 
 export const addParticipants = async (req, res, next) => {
   try {
-    const userId = getUserId(req, res);
-    if (!userId) {
-      return;
-    }
+    const userId = requireAuthUserId(req);
+    assertObjectBody(req.body);
 
-    const { id } = req.params;
-    const { participantIds } = req.body;
+    const id = requiredString(req.params.id, 'id');
+    const participantIds = requiredStringArray(
+      req.body.participantIds,
+      'participantIds'
+    );
 
     const conversation =
       await conversationsService.addParticipantsToConversation(
@@ -70,12 +72,8 @@ export const addParticipants = async (req, res, next) => {
 
 export const remove = async (req, res, next) => {
   try {
-    const userId = getUserId(req, res);
-    if (!userId) {
-      return;
-    }
-
-    const { id } = req.params;
+    const userId = requireAuthUserId(req);
+    const id = requiredString(req.params.id, 'id');
 
     await conversationsService.deleteConversation(id, userId);
 

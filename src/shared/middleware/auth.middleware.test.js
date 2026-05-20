@@ -22,7 +22,7 @@ describe('Auth Middleware', () => {
     jest.clearAllMocks();
   });
 
-  it('responds with 401 when access token cookie is missing', () => {
+  it('passes 401 error when access token cookie is missing', () => {
     const req = {
       cookies: {},
     };
@@ -32,9 +32,10 @@ describe('Auth Middleware', () => {
     authenticate(req, res, next);
 
     expect(jwt.verify).not.toHaveBeenCalled();
-    expect(next).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ message: 'No token' });
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'No token', statusCode: 401 })
+    );
+    expect(res.status).not.toHaveBeenCalled();
   });
 
   it('attaches decoded user and calls next for valid token', () => {
@@ -60,7 +61,7 @@ describe('Auth Middleware', () => {
     expect(res.status).not.toHaveBeenCalled();
   });
 
-  it('responds with 401 when token is invalid', () => {
+  it('passes 401 error when token is invalid', () => {
     jwt.verify.mockImplementation(() => {
       throw new Error('jwt malformed');
     });
@@ -76,8 +77,9 @@ describe('Auth Middleware', () => {
     authenticate(req, res, next);
 
     expect(jwt.verify).toHaveBeenCalledWith('invalid-token', 'access-secret');
-    expect(next).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ message: 'Invalid token' });
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Invalid token', statusCode: 401 })
+    );
+    expect(res.status).not.toHaveBeenCalled();
   });
 });

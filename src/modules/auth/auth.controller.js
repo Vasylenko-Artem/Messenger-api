@@ -1,4 +1,11 @@
 import * as authService from './auth.service.js';
+import { unauthorized } from '../../shared/errors/http-error.js';
+import {
+  assertObjectBody,
+  minLength,
+  requiredEmail,
+  requiredString,
+} from '../../shared/validation/validators.js';
 
 const durationToMs = (value) => {
   const match = /^(\d+)([smhd])$/.exec(value);
@@ -30,7 +37,19 @@ const getCookieOptions = (ttl) => ({
 
 export const register = async (req, res, next) => {
   try {
-    const user = await authService.register(req.body);
+    assertObjectBody(req.body);
+
+    const body = {
+      username: requiredString(req.body.username, 'username'),
+      email: requiredEmail(req.body.email),
+      password: minLength(
+        requiredString(req.body.password, 'password'),
+        'password',
+        6
+      ),
+    };
+
+    const user = await authService.register(body);
     res.json({ message: `User ${user.username} registered successfully` });
   } catch (error) {
     next(error);
@@ -39,7 +58,14 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const { accessToken, refreshToken } = await authService.login(req.body);
+    assertObjectBody(req.body);
+
+    const body = {
+      username: requiredString(req.body.username, 'username'),
+      password: requiredString(req.body.password, 'password'),
+    };
+
+    const { accessToken, refreshToken } = await authService.login(body);
 
     res
       .cookie(
@@ -63,7 +89,7 @@ export const refreshToken = async (req, res, next) => {
     const token = req.cookies.refreshToken;
 
     if (!token) {
-      return res.status(401).json({ message: 'No refresh token' });
+      throw unauthorized('No refresh token');
     }
 
     const { accessToken, refreshToken } = authService.refreshToken(token);
@@ -99,18 +125,22 @@ export const logout = (req, res) => {
     .json({ message: 'Logged out' });
 };
 
-export const status = async (req, res) => {
-  const user = req.user; // Set by auth middleware
+export const status = async (req, res, next) => {
+  try {
+    const user = req.user; // Set by auth middleware
 
-  if (!user) {
-    return res.status(401).json({ message: 'User is not logged in' });
+    if (!user) {
+      throw unauthorized('User is not logged in');
+    }
+
+    const { username } = user;
+
+    res.json({
+      user: {
+        username,
+      },
+    });
+  } catch (error) {
+    next(error);
   }
-
-  const { username } = user;
-
-  res.json({
-    user: {
-      username,
-    },
-  });
 };

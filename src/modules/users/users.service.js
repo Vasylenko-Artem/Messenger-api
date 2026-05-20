@@ -1,6 +1,11 @@
 import bcrypt from 'bcrypt';
 
 import prisma from '../../shared/db/prisma.js';
+import {
+  badRequest,
+  conflict,
+  notFound,
+} from '../../shared/errors/http-error.js';
 
 const SALT_ROUNDS = 10;
 
@@ -15,12 +20,12 @@ const publicUserSelect = {
 export const createUser = async (username, email, passwordHash) => {
   const userByUsername = await getUserByUsername(username);
   if (userByUsername) {
-    throw new Error('User already exists');
+    throw conflict('User already exists');
   }
 
   const userByEmail = await getUserByEmail(email);
   if (userByEmail) {
-    throw new Error('Email already exists');
+    throw conflict('Email already exists');
   }
 
   return prisma.user.create({
@@ -39,7 +44,7 @@ export const getCurrentUser = async (id) => {
   });
 
   if (!user) {
-    throw new Error('User not found');
+    throw notFound('User not found');
   }
 
   return user;
@@ -72,25 +77,25 @@ export const updateCurrentUser = async (
   });
 
   if (!currentUser) {
-    throw new Error('User not found');
+    throw notFound('User not found');
   }
 
   const data = {};
 
   if (username !== undefined) {
     if (typeof username !== 'string') {
-      throw new Error('Username is required');
+      throw badRequest('Username is required');
     }
 
     const normalizedUsername = username.trim();
 
     if (!normalizedUsername) {
-      throw new Error('Username is required');
+      throw badRequest('Username is required');
     }
 
     const existingUser = await getUserByUsername(normalizedUsername);
     if (existingUser && existingUser.id !== id) {
-      throw new Error('Username already exists');
+      throw conflict('Username already exists');
     }
 
     data.username = normalizedUsername;
@@ -98,18 +103,18 @@ export const updateCurrentUser = async (
 
   if (email !== undefined) {
     if (typeof email !== 'string') {
-      throw new Error('Email is required');
+      throw badRequest('Email is required');
     }
 
     const normalizedEmail = email.trim();
 
     if (!normalizedEmail) {
-      throw new Error('Email is required');
+      throw badRequest('Email is required');
     }
 
     const existingUser = await getUserByEmail(normalizedEmail);
     if (existingUser && existingUser.id !== id) {
-      throw new Error('Email already exists');
+      throw conflict('Email already exists');
     }
 
     data.email = normalizedEmail;
@@ -117,14 +122,14 @@ export const updateCurrentUser = async (
 
   if (password !== undefined) {
     if (typeof password !== 'string' || !password) {
-      throw new Error('Password is required');
+      throw badRequest('Password is required');
     }
 
     data.passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   }
 
   if (!Object.keys(data).length) {
-    throw new Error('No fields to update');
+    throw badRequest('No fields to update');
   }
 
   return prisma.user.update({

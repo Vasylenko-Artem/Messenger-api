@@ -8,6 +8,7 @@ import { registerModules } from './app.module.js';
 import { swaggerSpec } from './shared/docs/swagger.js';
 import { errorHandler } from './shared/middleware/error.middleware.js';
 import { httpLoggerStream } from './shared/logger/logger.js';
+import { notFound } from './shared/errors/http-error.js';
 
 dotenv.config();
 
@@ -25,6 +26,10 @@ app.use(
     withCredentials: true,
   })
 );
+
+app.use((req, res, next) => {
+  next(notFound(`Route ${req.method} ${req.originalUrl} not found`));
+});
 
 app.use(errorHandler);
 

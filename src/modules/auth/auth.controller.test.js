@@ -55,7 +55,13 @@ describe('Auth Controller', () => {
       const error = new Error('User already exists');
       authService.register.mockRejectedValue(error);
 
-      const req = { body: {} };
+      const req = {
+        body: {
+          username: 'test',
+          email: 'test@example.com',
+          password: 'password',
+        },
+      };
       const res = createResponse();
       const next = jest.fn();
 
@@ -112,7 +118,12 @@ describe('Auth Controller', () => {
       const error = new Error('Invalid credentials');
       authService.login.mockRejectedValue(error);
 
-      const req = { body: {} };
+      const req = {
+        body: {
+          username: 'test',
+          password: 'password',
+        },
+      };
       const res = createResponse();
       const next = jest.fn();
 
@@ -123,15 +134,21 @@ describe('Auth Controller', () => {
   });
 
   describe('refreshToken', () => {
-    it('responds with 401 when refresh token cookie is missing', async () => {
+    it('passes 401 error when refresh token cookie is missing', async () => {
       const req = { cookies: {} };
       const res = createResponse();
+      const next = jest.fn();
 
-      await refreshToken(req, res);
+      await refreshToken(req, res, next);
 
       expect(authService.refreshToken).not.toHaveBeenCalled();
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'No refresh token' });
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'No refresh token',
+          statusCode: 401,
+        })
+      );
+      expect(res.status).not.toHaveBeenCalled();
     });
 
     it('sets new auth cookies and responds with success message', async () => {
@@ -243,16 +260,20 @@ describe('Auth Controller', () => {
       });
     });
 
-    it('responds with 401 when request does not have authenticated user', async () => {
+    it('passes 401 error when request does not have authenticated user', async () => {
       const req = {};
       const res = createResponse();
+      const next = jest.fn();
 
-      await status(req, res);
+      await status(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'User is not logged in',
-      });
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'User is not logged in',
+          statusCode: 401,
+        })
+      );
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 });

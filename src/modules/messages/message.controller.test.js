@@ -51,10 +51,11 @@ describe('Message Controller', () => {
 
       await create(req, res);
 
-      expect(messagesService.sendMessage).toHaveBeenCalledWith(
-        'user-id',
-        req.body
-      );
+      expect(messagesService.sendMessage).toHaveBeenCalledWith('user-id', {
+        conversationId: 'conversation-id',
+        content: 'hello',
+        type: undefined,
+      });
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(message);
       expect(emitToConversation).toHaveBeenCalledWith(
@@ -64,15 +65,18 @@ describe('Message Controller', () => {
       );
     });
 
-    it('responds with 401 when user is missing from request', async () => {
+    it('passes 401 error when user is missing from request', async () => {
       const req = { body: {} };
       const res = createResponse();
+      const next = jest.fn();
 
-      await create(req, res);
+      await create(req, res, next);
 
       expect(messagesService.sendMessage).not.toHaveBeenCalled();
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Unauthorized', statusCode: 401 })
+      );
+      expect(res.status).not.toHaveBeenCalled();
     });
 
     it('responds with 403 when service rejects access', async () => {
@@ -145,7 +149,9 @@ describe('Message Controller', () => {
       expect(messagesService.editMessage).toHaveBeenCalledWith(
         'message-id',
         'user-id',
-        req.body
+        {
+          content: 'updated',
+        }
       );
       expect(res.json).toHaveBeenCalledWith(message);
       expect(emitToConversation).toHaveBeenCalledWith(

@@ -1,31 +1,28 @@
-const errorStatusByMessage = {
-  Forbidden: 403,
-  Unauthorized: 401,
-  'No token': 401,
-  'Invalid token': 401,
-  'No refresh token': 401,
-  'Invalid credentials': 401,
-  'Invalid refresh token': 401,
-  'User is not logged in': 401,
-  'Message not found': 404,
-  'Conversation not found': 404,
-  'User not found': 404,
-};
-
 export class HttpError extends Error {
-  constructor(statusCode, message) {
+  constructor(statusCode, message, options = {}) {
     super(message);
+    this.name = this.constructor.name;
     this.statusCode = statusCode;
+    this.expose = options.expose ?? statusCode < 500;
+    this.details = options.details;
+    Error.captureStackTrace?.(this, this.constructor);
   }
 }
 
-export const getErrorStatus = (error) => {
-  if (error?.statusCode) {
-    return error.statusCode;
+export class ValidationError extends HttpError {
+  constructor(message = 'Validation failed', details = []) {
+    super(400, message, { details });
   }
+}
 
-  return errorStatusByMessage[error?.message] || 400;
-};
+export const badRequest = (message = 'Bad request', details) =>
+  new HttpError(400, message, { details });
 
 export const unauthorized = (message = 'Unauthorized') =>
   new HttpError(401, message);
+
+export const forbidden = (message = 'Forbidden') => new HttpError(403, message);
+
+export const notFound = (message = 'Not found') => new HttpError(404, message);
+
+export const conflict = (message = 'Conflict') => new HttpError(409, message);

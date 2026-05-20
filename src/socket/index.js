@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 
 import { env } from '../shared/config/env.js';
+import { badRequest, unauthorized } from '../shared/errors/http-error.js';
 import { logger } from '../shared/logger/logger.js';
 import * as messagesService from '../modules/messages/message.service.js';
 import { getConversationRoom, SOCKET_EVENTS } from './events.js';
@@ -49,14 +50,14 @@ const authenticateSocket = (socket, next) => {
   const token = getSocketToken(socket);
 
   if (!token) {
-    return next(new Error('No token'));
+    return next(unauthorized('No token'));
   }
 
   try {
     socket.user = jwt.verify(token, env.JWT_ACCESS_SECRET);
     return next();
   } catch {
-    return next(new Error('Invalid token'));
+    return next(unauthorized('Invalid token'));
   }
 };
 
@@ -85,7 +86,7 @@ const registerConversationHandlers = (socket) => {
         socket,
         async () => {
           if (!conversationId) {
-            throw new Error('Conversation id is required');
+            throw badRequest('Conversation id is required');
           }
 
           await messagesService.ensureParticipant(
