@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 
 import { env } from '../shared/config/env.js';
+import { logger } from '../shared/logger/logger.js';
 import * as messagesService from '../modules/messages/message.service.js';
 import { getConversationRoom, SOCKET_EVENTS } from './events.js';
 
@@ -190,13 +191,19 @@ export const initSocket = (server) => {
   io.use(authenticateSocket);
 
   io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
-    console.log(`Socket connected: ${socket.id}`);
+    logger.info(
+      { socketId: socket.id, userId: socket.user.id },
+      'Socket connected'
+    );
 
     registerConversationHandlers(socket);
     registerMessageHandlers(socket);
 
     socket.on(SOCKET_EVENTS.DISCONNECT, () => {
-      console.log(`Socket disconnected: ${socket.id}`);
+      logger.info(
+        { socketId: socket.id, userId: socket.user.id },
+        'Socket disconnected'
+      );
     });
   });
 
