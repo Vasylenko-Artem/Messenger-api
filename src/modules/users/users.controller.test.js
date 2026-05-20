@@ -51,9 +51,8 @@ describe('Users Controller', () => {
     });
 
     it('responds with 404 when user does not exist', async () => {
-      usersService.getCurrentUser.mockRejectedValue(
-        new Error('User not found')
-      );
+      const error = new Error('User not found');
+      usersService.getCurrentUser.mockRejectedValue(error);
 
       const req = {
         user: {
@@ -61,11 +60,11 @@ describe('Users Controller', () => {
         },
       };
       const res = createResponse();
+      const next = jest.fn();
 
-      await getMe(req, res);
+      await getMe(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ message: 'User not found' });
+      expect(next).toHaveBeenCalledWith(error);
     });
   });
 
@@ -114,9 +113,8 @@ describe('Users Controller', () => {
     });
 
     it('responds with 400 when update validation fails', async () => {
-      usersService.updateCurrentUser.mockRejectedValue(
-        new Error('No fields to update')
-      );
+      const error = new Error('No fields to update');
+      usersService.updateCurrentUser.mockRejectedValue(error);
 
       const req = {
         user: {
@@ -125,13 +123,11 @@ describe('Users Controller', () => {
         body: {},
       };
       const res = createResponse();
+      const next = jest.fn();
 
-      await updateMe(req, res);
+      await updateMe(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'No fields to update',
-      });
+      expect(next).toHaveBeenCalledWith(error);
     });
   });
 });

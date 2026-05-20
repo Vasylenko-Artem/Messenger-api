@@ -1,14 +1,6 @@
 import * as usersService from './users.service.js';
 
-const getErrorStatus = (message) => {
-  if (message === 'User not found') {
-    return 404;
-  }
-
-  return 400;
-};
-
-export const getMe = async (req, res) => {
+export const getMe = async (req, res, next) => {
   try {
     if (!req.user?.id) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -18,12 +10,11 @@ export const getMe = async (req, res) => {
 
     res.json({ user });
   } catch (error) {
-    console.log(error);
-    res.status(getErrorStatus(error.message)).json({ message: error.message });
+    next(error);
   }
 };
 
-export const updateMe = async (req, res) => {
+export const updateMe = async (req, res, next) => {
   try {
     if (!req.user?.id) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -33,7 +24,6 @@ export const updateMe = async (req, res) => {
 
     res.json({ user });
   } catch (error) {
-    console.log(error);
-    res.status(getErrorStatus(error.message)).json({ message: error.message });
+    next(error);
   }
 };

@@ -2,18 +2,6 @@ import * as messagesService from './message.service.js';
 import { emitToConversation } from '../../socket/index.js';
 import { SOCKET_EVENTS } from '../../socket/events.js';
 
-const getErrorStatus = (message) => {
-  if (message === 'Forbidden') {
-    return 403;
-  }
-
-  if (message === 'Message not found') {
-    return 404;
-  }
-
-  return 400;
-};
-
 const getUserId = (req, res) => {
   if (!req.user?.id) {
     res.status(401).json({ message: 'Unauthorized' });
@@ -23,7 +11,7 @@ const getUserId = (req, res) => {
   return req.user.id;
 };
 
-export const create = async (req, res) => {
+export const create = async (req, res, next) => {
   try {
     const userId = getUserId(req, res);
     if (!userId) {
@@ -40,12 +28,11 @@ export const create = async (req, res) => {
 
     res.status(201).json(message);
   } catch (error) {
-    console.log(error);
-    res.status(getErrorStatus(error.message)).json({ message: error.message });
+    next(error);
   }
 };
 
-export const getByConversation = async (req, res) => {
+export const getByConversation = async (req, res, next) => {
   try {
     const userId = getUserId(req, res);
     if (!userId) {
@@ -59,12 +46,11 @@ export const getByConversation = async (req, res) => {
 
     res.json(messages);
   } catch (error) {
-    console.log(error);
-    res.status(getErrorStatus(error.message)).json({ message: error.message });
+    next(error);
   }
 };
 
-export const update = async (req, res) => {
+export const update = async (req, res, next) => {
   try {
     const userId = getUserId(req, res);
     if (!userId) {
@@ -85,12 +71,11 @@ export const update = async (req, res) => {
 
     res.json(message);
   } catch (error) {
-    console.log(error);
-    res.status(getErrorStatus(error.message)).json({ message: error.message });
+    next(error);
   }
 };
 
-export const markAsRead = async (req, res) => {
+export const markAsRead = async (req, res, next) => {
   try {
     const userId = getUserId(req, res);
     if (!userId) {
@@ -113,7 +98,6 @@ export const markAsRead = async (req, res) => {
 
     res.json(status);
   } catch (error) {
-    console.log(error);
-    res.status(getErrorStatus(error.message)).json({ message: error.message });
+    next(error);
   }
 };

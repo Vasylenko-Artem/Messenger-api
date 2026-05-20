@@ -67,9 +67,8 @@ describe('Conversations Controller', () => {
     });
 
     it('responds with 400 when validation fails', async () => {
-      conversationsService.createConversation.mockRejectedValue(
-        new Error('Invalid conversation type')
-      );
+      const error = new Error('Invalid conversation type');
+      conversationsService.createConversation.mockRejectedValue(error);
 
       const req = {
         user: { id: 'user-id' },
@@ -79,13 +78,11 @@ describe('Conversations Controller', () => {
         },
       };
       const res = createResponse();
+      const next = jest.fn();
 
-      await create(req, res);
+      await create(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Invalid conversation type',
-      });
+      expect(next).toHaveBeenCalledWith(error);
     });
   });
 
@@ -144,9 +141,8 @@ describe('Conversations Controller', () => {
     });
 
     it('responds with 403 when user is not participant', async () => {
-      conversationsService.deleteConversation.mockRejectedValue(
-        new Error('Forbidden')
-      );
+      const error = new Error('Forbidden');
+      conversationsService.deleteConversation.mockRejectedValue(error);
 
       const req = {
         user: { id: 'user-id' },
@@ -155,17 +151,16 @@ describe('Conversations Controller', () => {
         },
       };
       const res = createResponse();
+      const next = jest.fn();
 
-      await remove(req, res);
+      await remove(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden' });
+      expect(next).toHaveBeenCalledWith(error);
     });
 
     it('responds with 404 when conversation does not exist', async () => {
-      conversationsService.deleteConversation.mockRejectedValue(
-        new Error('Conversation not found')
-      );
+      const error = new Error('Conversation not found');
+      conversationsService.deleteConversation.mockRejectedValue(error);
 
       const req = {
         user: { id: 'user-id' },
@@ -174,13 +169,11 @@ describe('Conversations Controller', () => {
         },
       };
       const res = createResponse();
+      const next = jest.fn();
 
-      await remove(req, res);
+      await remove(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Conversation not found',
-      });
+      expect(next).toHaveBeenCalledWith(error);
     });
   });
 });

@@ -1,17 +1,5 @@
 import * as conversationsService from './conversations.service.js';
 
-const getErrorStatus = (message) => {
-  if (message === 'Forbidden') {
-    return 403;
-  }
-
-  if (message === 'Conversation not found') {
-    return 404;
-  }
-
-  return 400;
-};
-
 const getUserId = (req, res) => {
   if (!req.user?.id) {
     res.status(401).json({ message: 'Unauthorized' });
@@ -21,7 +9,7 @@ const getUserId = (req, res) => {
   return req.user.id;
 };
 
-export const create = async (req, res) => {
+export const create = async (req, res, next) => {
   try {
     const userId = getUserId(req, res);
     if (!userId) {
@@ -38,12 +26,11 @@ export const create = async (req, res) => {
 
     res.status(201).json(conversation);
   } catch (error) {
-    console.log(error);
-    res.status(getErrorStatus(error.message)).json({ message: error.message });
+    next(error);
   }
 };
 
-export const getConversations = async (req, res) => {
+export const getConversations = async (req, res, next) => {
   try {
     const userId = getUserId(req, res);
     if (!userId) {
@@ -54,12 +41,11 @@ export const getConversations = async (req, res) => {
 
     res.json(conversations);
   } catch (error) {
-    console.log(error);
-    res.status(getErrorStatus(error.message)).json({ message: error.message });
+    next(error);
   }
 };
 
-export const remove = async (req, res) => {
+export const remove = async (req, res, next) => {
   try {
     const userId = getUserId(req, res);
     if (!userId) {
@@ -72,7 +58,6 @@ export const remove = async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.log(error);
-    res.status(getErrorStatus(error.message)).json({ message: error.message });
+    next(error);
   }
 };

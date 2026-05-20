@@ -5,6 +5,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import { registerModules } from './app.module.js';
 import { swaggerSpec } from './shared/docs/swagger.js';
+import { errorHandler } from './shared/middleware/error.middleware.js';
 
 dotenv.config();
 
@@ -21,5 +22,7 @@ app.use(
     withCredentials: true,
   })
 );
+
+app.use(errorHandler);
 
 export default app;

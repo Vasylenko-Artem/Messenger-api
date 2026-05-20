@@ -1,15 +1,15 @@
 import * as authService from './auth.service.js';
 
-export const register = async (req, res) => {
+export const register = async (req, res, next) => {
   try {
     const user = await authService.register(req.body);
     res.json({ message: `User ${user.username} registered successfully` });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 };
 
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
   try {
     const { accessToken, refreshToken } = await authService.login(req.body);
 
@@ -30,11 +30,11 @@ export const login = async (req, res) => {
       })
       .json({ message: 'Logged in' });
   } catch (error) {
-    res.status(401).json({ message: error.message });
+    next(error);
   }
 };
 
-export const refreshToken = async (req, res) => {
+export const refreshToken = async (req, res, next) => {
   try {
     const token = req.cookies.refreshToken;
 
@@ -61,7 +61,7 @@ export const refreshToken = async (req, res) => {
       })
       .json({ message: 'Token refreshed' });
   } catch (error) {
-    res.status(401).json({ message: error.message });
+    next(error);
   }
 };
 

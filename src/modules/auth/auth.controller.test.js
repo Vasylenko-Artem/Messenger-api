@@ -47,17 +47,16 @@ describe('Auth Controller', () => {
     });
 
     it('responds with 400 when registration fails', async () => {
-      authService.register.mockRejectedValue(new Error('User already exists'));
+      const error = new Error('User already exists');
+      authService.register.mockRejectedValue(error);
 
       const req = { body: {} };
       const res = createResponse();
+      const next = jest.fn();
 
-      await register(req, res);
+      await register(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'User already exists',
-      });
+      expect(next).toHaveBeenCalledWith(error);
     });
   });
 
@@ -105,17 +104,16 @@ describe('Auth Controller', () => {
     });
 
     it('responds with 401 when login fails', async () => {
-      authService.login.mockRejectedValue(new Error('Invalid credentials'));
+      const error = new Error('Invalid credentials');
+      authService.login.mockRejectedValue(error);
 
       const req = { body: {} };
       const res = createResponse();
+      const next = jest.fn();
 
-      await login(req, res);
+      await login(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Invalid credentials',
-      });
+      expect(next).toHaveBeenCalledWith(error);
     });
   });
 
@@ -175,8 +173,9 @@ describe('Auth Controller', () => {
     });
 
     it('responds with 401 when refresh token is invalid', async () => {
+      const error = new Error('Invalid refresh token');
       authService.refreshToken.mockImplementation(() => {
-        throw new Error('Invalid refresh token');
+        throw error;
       });
 
       const req = {
@@ -185,13 +184,11 @@ describe('Auth Controller', () => {
         },
       };
       const res = createResponse();
+      const next = jest.fn();
 
-      await refreshToken(req, res);
+      await refreshToken(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Invalid refresh token',
-      });
+      expect(next).toHaveBeenCalledWith(error);
     });
   });
 

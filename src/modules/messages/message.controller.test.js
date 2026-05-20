@@ -76,7 +76,8 @@ describe('Message Controller', () => {
     });
 
     it('responds with 403 when service rejects access', async () => {
-      messagesService.sendMessage.mockRejectedValue(new Error('Forbidden'));
+      const error = new Error('Forbidden');
+      messagesService.sendMessage.mockRejectedValue(error);
 
       const req = {
         user: { id: 'user-id' },
@@ -86,11 +87,11 @@ describe('Message Controller', () => {
         },
       };
       const res = createResponse();
+      const next = jest.fn();
 
-      await create(req, res);
+      await create(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden' });
+      expect(next).toHaveBeenCalledWith(error);
     });
   });
 
@@ -155,9 +156,8 @@ describe('Message Controller', () => {
     });
 
     it('responds with 404 when message does not exist', async () => {
-      messagesService.editMessage.mockRejectedValue(
-        new Error('Message not found')
-      );
+      const error = new Error('Message not found');
+      messagesService.editMessage.mockRejectedValue(error);
 
       const req = {
         user: { id: 'user-id' },
@@ -169,11 +169,11 @@ describe('Message Controller', () => {
         },
       };
       const res = createResponse();
+      const next = jest.fn();
 
-      await update(req, res);
+      await update(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Message not found' });
+      expect(next).toHaveBeenCalledWith(error);
     });
   });
 
