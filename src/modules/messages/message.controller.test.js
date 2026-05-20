@@ -121,6 +121,24 @@ describe('Message Controller', () => {
       );
       expect(res.json).toHaveBeenCalledWith(messages);
     });
+
+    it('passes service errors to next', async () => {
+      const error = new Error('Forbidden');
+      messagesService.getMessages.mockRejectedValue(error);
+
+      const req = {
+        user: { id: 'user-id' },
+        params: {
+          conversationId: 'conversation-id',
+        },
+      };
+      const res = createResponse();
+      const next = jest.fn();
+
+      await getByConversation(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(error);
+    });
   });
 
   describe('update', () => {
@@ -219,6 +237,24 @@ describe('Message Controller', () => {
         status
       );
       expect(res.json).toHaveBeenCalledWith(status);
+    });
+
+    it('passes service errors to next', async () => {
+      const error = new Error('Message not found');
+      messagesService.markMessageAsRead.mockRejectedValue(error);
+
+      const req = {
+        user: { id: 'user-id' },
+        params: {
+          id: 'missing-id',
+        },
+      };
+      const res = createResponse();
+      const next = jest.fn();
+
+      await markAsRead(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(error);
     });
   });
 });

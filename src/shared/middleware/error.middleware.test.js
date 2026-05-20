@@ -1,3 +1,5 @@
+import { Prisma } from '@prisma/client';
+
 import { HttpError, ValidationError } from '../errors/http-error.js';
 import { errorHandler } from './error.middleware.js';
 
@@ -39,6 +41,98 @@ describe('Error Middleware', () => {
     const res = createResponse();
 
     errorHandler(new Error('Unexpected failure'), {}, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Internal server error',
+    });
+  });
+
+  it('includes validation details when present', () => {
+    const res = createResponse();
+    const details = [{ field: 'email', message: 'email is required' }];
+
+    errorHandler(
+      new ValidationError('Invalid input', details),
+      {},
+      res,
+      jest.fn()
+    );
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Invalid input',
+      details,
+    });
+  });
+
+  it('maps known conflict errors', () => {
+    const res = createResponse();
+
+    errorHandler(new Error('Email already exists'), {}, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Email already exists' });
+  });
+
+  it('maps Prisma unique constraint errors with field target', () => {
+    const res = createResponse();
+    const error = new Prisma.PrismaClientKnownRequestError(
+      'Unique constraint failed',
+      {
+        code: 'P2002',
+        clientVersion: 'test',
+        meta: {
+          target: ['email'],
+        },
+      }
+    );
+
+    errorHandler(error, {}, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({ message: 'email already exists' });
+  });
+
+  it('maps Prisma unique constraint errors without target', () => {
+    const res = createResponse();
+    const error = new Prisma.PrismaClientKnownRequestError(
+      'Unique constraint failed',
+      {
+        code: 'P2002',
+        clientVersion: 'test',
+      }
+    );
+
+    errorHandler(error, {}, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Unique constraint failed',
+    });
+  });
+
+  it('maps Prisma not found errors', () => {
+    const res = createResponse();
+    const error = new Prisma.PrismaClientKnownRequestError('Not found', {
+      code: 'P2025',
+      clientVersion: 'test',
+    });
+
+    errorHandler(error, {}, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Resource not found' });
+  });
+
+  it('hides unknown Prisma errors', () => {
+    const res = createResponse();
+    const error = new Prisma.PrismaClientKnownRequestError('Unknown prisma', {
+      code: 'P9999',
+      clientVersion: 'test',
+    });
+
+    errorHandler(error, {}, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({

@@ -131,6 +131,29 @@ describe('Auth Controller', () => {
 
       expect(next).toHaveBeenCalledWith(error);
     });
+
+    it('passes cookie ttl parsing errors to next', async () => {
+      authService.login.mockResolvedValue({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      });
+      process.env.JWT_ACCES_TOKEN_TTL = 'bad-ttl';
+
+      const req = {
+        body: {
+          username: 'test',
+          password: 'password',
+        },
+      };
+      const res = createResponse();
+      const next = jest.fn();
+
+      await login(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Invalid TTL value: bad-ttl' })
+      );
+    });
   });
 
   describe('refreshToken', () => {

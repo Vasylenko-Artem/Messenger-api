@@ -157,10 +157,26 @@ describe('Conversations Service', () => {
       expect(prisma.conversation.create).not.toHaveBeenCalled();
     });
 
+    it('uses empty participant ids by default', async () => {
+      await expect(createConversation('creator-id', 'PRIVATE')).rejects.toThrow(
+        'Private conversation requires one participant'
+      );
+
+      expect(prisma.conversation.create).not.toHaveBeenCalled();
+    });
+
     it('throws when group conversation does not have participants', async () => {
       await expect(
         createConversation('creator-id', 'GROUP', [])
       ).rejects.toThrow('Group conversation requires participants');
+
+      expect(prisma.conversation.create).not.toHaveBeenCalled();
+    });
+
+    it('throws when participant ids are not an array', async () => {
+      await expect(
+        createConversation('creator-id', 'PRIVATE', 'participant-id')
+      ).rejects.toThrow('Participant ids are required');
 
       expect(prisma.conversation.create).not.toHaveBeenCalled();
     });
@@ -359,6 +375,24 @@ describe('Conversations Service', () => {
         addParticipantsToConversation('conversation-id', 'admin-id', [
           'admin-id',
         ])
+      ).rejects.toThrow('Participant ids are required');
+
+      expect(prisma.user.count).not.toHaveBeenCalled();
+      expect(prisma.conversationParticipant.createMany).not.toHaveBeenCalled();
+    });
+
+    it('uses empty participant ids by default when adding participants', async () => {
+      prisma.conversation.findUnique.mockResolvedValue({
+        id: 'conversation-id',
+        type: 'GROUP',
+      });
+      prisma.conversationParticipant.findFirst.mockResolvedValue({
+        id: 'participant-id',
+        role: 'ADMIN',
+      });
+
+      await expect(
+        addParticipantsToConversation('conversation-id', 'admin-id')
       ).rejects.toThrow('Participant ids are required');
 
       expect(prisma.user.count).not.toHaveBeenCalled();

@@ -100,6 +100,64 @@ describe('Users Controller', () => {
       expect(res.json).toHaveBeenCalledWith({ user });
     });
 
+    it('updates user without password', async () => {
+      const user = {
+        id: 'user-id',
+        username: 'updated',
+        email: 'test@example.com',
+      };
+
+      usersService.updateCurrentUser.mockResolvedValue(user);
+
+      const req = {
+        user: {
+          id: 'user-id',
+        },
+        body: {
+          username: 'updated',
+        },
+      };
+      const res = createResponse();
+
+      await updateMe(req, res);
+
+      expect(usersService.updateCurrentUser).toHaveBeenCalledWith('user-id', {
+        username: 'updated',
+        email: undefined,
+        password: undefined,
+      });
+      expect(res.json).toHaveBeenCalledWith({ user });
+    });
+
+    it('updates user with password', async () => {
+      const user = {
+        id: 'user-id',
+        username: 'test',
+        email: 'test@example.com',
+      };
+
+      usersService.updateCurrentUser.mockResolvedValue(user);
+
+      const req = {
+        user: {
+          id: 'user-id',
+        },
+        body: {
+          password: 'new-password',
+        },
+      };
+      const res = createResponse();
+
+      await updateMe(req, res);
+
+      expect(usersService.updateCurrentUser).toHaveBeenCalledWith('user-id', {
+        username: undefined,
+        email: undefined,
+        password: 'new-password',
+      });
+      expect(res.json).toHaveBeenCalledWith({ user });
+    });
+
     it('passes 401 error when user is missing from request', async () => {
       const req = {
         body: {

@@ -212,6 +212,56 @@ describe('Users Service', () => {
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
+    it('throws when username is not a string', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-id' });
+
+      await expect(
+        updateCurrentUser('user-id', { username: 123 })
+      ).rejects.toThrow('Username is required');
+    });
+
+    it('throws when username is blank', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-id' });
+
+      await expect(
+        updateCurrentUser('user-id', { username: '   ' })
+      ).rejects.toThrow('Username is required');
+    });
+
+    it('throws when email is not a string', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-id' });
+
+      await expect(
+        updateCurrentUser('user-id', { email: 123 })
+      ).rejects.toThrow('Email is required');
+    });
+
+    it('throws when email is blank', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-id' });
+
+      await expect(
+        updateCurrentUser('user-id', { email: '   ' })
+      ).rejects.toThrow('Email is required');
+    });
+
+    it('throws when email belongs to another user', async () => {
+      prisma.user.findUnique
+        .mockResolvedValueOnce({ id: 'user-id' })
+        .mockResolvedValueOnce({ id: 'another-user-id' });
+
+      await expect(
+        updateCurrentUser('user-id', { email: 'existing@example.com' })
+      ).rejects.toThrow('Email already exists');
+    });
+
+    it('throws when password is invalid', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-id' });
+
+      await expect(
+        updateCurrentUser('user-id', { password: '' })
+      ).rejects.toThrow('Password is required');
+    });
+
     it('throws when no fields are provided', async () => {
       prisma.user.findUnique.mockResolvedValue({ id: 'user-id' });
 
