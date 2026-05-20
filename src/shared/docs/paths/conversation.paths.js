@@ -101,4 +101,54 @@ export const conversationPaths = {
       },
     },
   },
+
+  '/conversations/{id}/participants': {
+    post: {
+      summary: 'Add participants to group conversation',
+      tags: ['Conversations'],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'id',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              $ref: '#/components/schemas/AddConversationParticipantsRequest',
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Updated conversation',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/Conversation',
+              },
+            },
+          },
+        },
+        400: {
+          $ref: '#/components/responses/BadRequest',
+        },
+        401: {
+          $ref: '#/components/responses/Unauthorized',
+        },
+        403: {
+          $ref: '#/components/responses/Forbidden',
+        },
+        404: {
+          $ref: '#/components/responses/NotFound',
+        },
+      },
+    },
+  },
 };

@@ -1,4 +1,5 @@
 import {
+  addParticipants,
   create,
   getConversations,
   remove,
@@ -6,6 +7,7 @@ import {
 import * as conversationsService from './conversations.service.js';
 
 jest.mock('./conversations.service.js', () => ({
+  addParticipantsToConversation: jest.fn(),
   createConversation: jest.fn(),
   getConversations: jest.fn(),
   deleteConversation: jest.fn(),
@@ -114,6 +116,80 @@ describe('Conversations Controller', () => {
       expect(conversationsService.getConversations).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+    });
+  });
+
+  describe('addParticipants', () => {
+    it('adds participants and responds with updated conversation', async () => {
+      const conversation = {
+        id: 'conversation-id',
+        type: 'GROUP',
+      };
+
+      conversationsService.addParticipantsToConversation.mockResolvedValue(
+        conversation
+      );
+
+      const req = {
+        user: { id: 'user-id' },
+        params: {
+          id: 'conversation-id',
+        },
+        body: {
+          participantIds: ['participant-id'],
+        },
+      };
+      const res = createResponse();
+
+      await addParticipants(req, res);
+
+      expect(
+        conversationsService.addParticipantsToConversation
+      ).toHaveBeenCalledWith('conversation-id', 'user-id', ['participant-id']);
+      expect(res.json).toHaveBeenCalledWith(conversation);
+    });
+
+    it('responds with 401 when user is missing from request', async () => {
+      const req = {
+        params: {
+          id: 'conversation-id',
+        },
+        body: {
+          participantIds: ['participant-id'],
+        },
+      };
+      const res = createResponse();
+
+      await addParticipants(req, res);
+
+      expect(
+        conversationsService.addParticipantsToConversation
+      ).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+    });
+
+    it('passes service errors to next', async () => {
+      const error = new Error('Forbidden');
+      conversationsService.addParticipantsToConversation.mockRejectedValue(
+        error
+      );
+
+      const req = {
+        user: { id: 'user-id' },
+        params: {
+          id: 'conversation-id',
+        },
+        body: {
+          participantIds: ['participant-id'],
+        },
+      };
+      const res = createResponse();
+      const next = jest.fn();
+
+      await addParticipants(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(error);
     });
   });
 

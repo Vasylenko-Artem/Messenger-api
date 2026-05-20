@@ -74,6 +74,18 @@ const ensureParticipant = async (conversationId, userId) => {
   return participant;
 };
 
+const getConversationOrThrow = async (conversationId) => {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+  });
+
+  if (!conversation) {
+    throw new Error('Conversation not found');
+  }
+
+  return conversation;
+};
+
 export const createConversation = async (userId, type, participantIds = []) => {
   if (!conversationTypes.includes(type)) {
     throw new Error('Invalid conversation type');
@@ -131,14 +143,48 @@ export const getConversations = async (userId) => {
   });
 };
 
-export const deleteConversation = async (conversationId, userId) => {
-  const conversation = await prisma.conversation.findUnique({
-    where: { id: conversationId },
+export const addParticipantsToConversation = async (
+  conversationId,
+  userId,
+  participantIds = []
+) => {
+  const conversation = await getConversationOrThrow(conversationId);
+
+  if (conversation.type !== 'GROUP') {
+    throw new Error('Cannot add participants to private conversation');
+  }
+
+  const currentParticipant = await ensureParticipant(conversationId, userId);
+
+  if (currentParticipant.role !== 'ADMIN') {
+    throw new Error('Forbidden');
+  }
+
+  const uniqueParticipantIds = normalizeParticipantIds(userId, participantIds);
+
+  if (uniqueParticipantIds.length < 1) {
+    throw new Error('Participant ids are required');
+  }
+
+  await validateParticipantsExist(uniqueParticipantIds);
+
+  await prisma.conversationParticipant.createMany({
+    data: uniqueParticipantIds.map((id) => ({
+      conversationId,
+      userId: id,
+      role: 'MEMBER',
+    })),
+    skipDuplicates: true,
   });
 
-  if (!conversation) {
-    throw new Error('Conversation not found');
-  }
+  return prisma.conversation.findUnique({
+    where: { id: conversationId },
+    include: participantInclude,
+  });
+};
+
+export const deleteConversation = async (conversationId, userId) => {
+  await getConversationOrThrow(conversationId);
 
   await ensureParticipant(conversationId, userId);
 

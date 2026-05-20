@@ -1,4 +1,5 @@
 import {
+  addParticipantsToConversation,
   createConversation,
   deleteConversation,
   getConversations,
@@ -18,6 +19,7 @@ jest.mock('../../shared/db/prisma.js', () => ({
       findUnique: jest.fn(),
     },
     conversationParticipant: {
+      createMany: jest.fn(),
       findFirst: jest.fn(),
     },
   },
@@ -211,6 +213,176 @@ describe('Conversations Service', () => {
           createdAt: 'desc',
         },
       });
+    });
+  });
+
+  describe('addParticipantsToConversation', () => {
+    it('adds unique participants to group conversation when user is admin', async () => {
+      const conversation = {
+        id: 'conversation-id',
+        type: 'GROUP',
+      };
+      const updatedConversation = {
+        ...conversation,
+        participants: [],
+      };
+
+      prisma.conversation.findUnique
+        .mockResolvedValueOnce(conversation)
+        .mockResolvedValueOnce(updatedConversation);
+      prisma.conversationParticipant.findFirst.mockResolvedValue({
+        id: 'participant-id',
+        role: 'ADMIN',
+      });
+      prisma.user.count.mockResolvedValue(2);
+      prisma.conversationParticipant.createMany.mockResolvedValue({ count: 2 });
+
+      await expect(
+        addParticipantsToConversation('conversation-id', 'admin-id', [
+          'new-user-id',
+          'new-user-id',
+          'second-user-id',
+          'admin-id',
+        ])
+      ).resolves.toEqual(updatedConversation);
+
+      expect(prisma.conversation.findUnique).toHaveBeenNthCalledWith(1, {
+        where: { id: 'conversation-id' },
+      });
+      expect(prisma.conversationParticipant.findFirst).toHaveBeenCalledWith({
+        where: {
+          conversationId: 'conversation-id',
+          userId: 'admin-id',
+        },
+      });
+      expect(prisma.user.count).toHaveBeenCalledWith({
+        where: {
+          id: {
+            in: ['new-user-id', 'second-user-id'],
+          },
+        },
+      });
+      expect(prisma.conversationParticipant.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            conversationId: 'conversation-id',
+            userId: 'new-user-id',
+            role: 'MEMBER',
+          },
+          {
+            conversationId: 'conversation-id',
+            userId: 'second-user-id',
+            role: 'MEMBER',
+          },
+        ],
+        skipDuplicates: true,
+      });
+      expect(prisma.conversation.findUnique).toHaveBeenNthCalledWith(2, {
+        where: { id: 'conversation-id' },
+        include: participantInclude,
+      });
+    });
+
+    it('throws when conversation does not exist', async () => {
+      prisma.conversation.findUnique.mockResolvedValue(null);
+
+      await expect(
+        addParticipantsToConversation('missing-id', 'admin-id', ['user-id'])
+      ).rejects.toThrow('Conversation not found');
+
+      expect(prisma.conversationParticipant.findFirst).not.toHaveBeenCalled();
+      expect(prisma.conversationParticipant.createMany).not.toHaveBeenCalled();
+    });
+
+    it('throws when conversation is private', async () => {
+      prisma.conversation.findUnique.mockResolvedValue({
+        id: 'conversation-id',
+        type: 'PRIVATE',
+      });
+
+      await expect(
+        addParticipantsToConversation('conversation-id', 'admin-id', [
+          'user-id',
+        ])
+      ).rejects.toThrow('Cannot add participants to private conversation');
+
+      expect(prisma.conversationParticipant.findFirst).not.toHaveBeenCalled();
+      expect(prisma.conversationParticipant.createMany).not.toHaveBeenCalled();
+    });
+
+    it('throws when current user is not participant', async () => {
+      prisma.conversation.findUnique.mockResolvedValue({
+        id: 'conversation-id',
+        type: 'GROUP',
+      });
+      prisma.conversationParticipant.findFirst.mockResolvedValue(null);
+
+      await expect(
+        addParticipantsToConversation('conversation-id', 'user-id', [
+          'new-user-id',
+        ])
+      ).rejects.toThrow('Forbidden');
+
+      expect(prisma.conversationParticipant.createMany).not.toHaveBeenCalled();
+    });
+
+    it('throws when current user is not admin', async () => {
+      prisma.conversation.findUnique.mockResolvedValue({
+        id: 'conversation-id',
+        type: 'GROUP',
+      });
+      prisma.conversationParticipant.findFirst.mockResolvedValue({
+        id: 'participant-id',
+        role: 'MEMBER',
+      });
+
+      await expect(
+        addParticipantsToConversation('conversation-id', 'user-id', [
+          'new-user-id',
+        ])
+      ).rejects.toThrow('Forbidden');
+
+      expect(prisma.conversationParticipant.createMany).not.toHaveBeenCalled();
+    });
+
+    it('throws when participant ids are empty', async () => {
+      prisma.conversation.findUnique.mockResolvedValue({
+        id: 'conversation-id',
+        type: 'GROUP',
+      });
+      prisma.conversationParticipant.findFirst.mockResolvedValue({
+        id: 'participant-id',
+        role: 'ADMIN',
+      });
+
+      await expect(
+        addParticipantsToConversation('conversation-id', 'admin-id', [
+          'admin-id',
+        ])
+      ).rejects.toThrow('Participant ids are required');
+
+      expect(prisma.user.count).not.toHaveBeenCalled();
+      expect(prisma.conversationParticipant.createMany).not.toHaveBeenCalled();
+    });
+
+    it('throws when any participant does not exist', async () => {
+      prisma.conversation.findUnique.mockResolvedValue({
+        id: 'conversation-id',
+        type: 'GROUP',
+      });
+      prisma.conversationParticipant.findFirst.mockResolvedValue({
+        id: 'participant-id',
+        role: 'ADMIN',
+      });
+      prisma.user.count.mockResolvedValue(0);
+
+      await expect(
+        addParticipantsToConversation('conversation-id', 'admin-id', [
+          'missing-id',
+        ])
+      ).rejects.toThrow('Participant not found');
+
+      expect(prisma.conversationParticipant.createMany).not.toHaveBeenCalled();
     });
   });
 

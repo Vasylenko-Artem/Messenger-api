@@ -8,6 +8,7 @@ router.use(authenticate);
 
 router.get('/', controller.getConversations);
 router.post('/', controller.create);
+router.post('/:id/participants', controller.addParticipants);
 router.delete('/:id', controller.remove);
 
 export default router;

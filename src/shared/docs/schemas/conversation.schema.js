@@ -85,4 +85,19 @@ export const conversationSchemas = {
       },
     },
   },
+
+  AddConversationParticipantsRequest: {
+    type: 'object',
+    required: ['participantIds'],
+    properties: {
+      participantIds: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'uuid',
+        },
+        example: ['9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9'],
+      },
+    },
+  },
 };

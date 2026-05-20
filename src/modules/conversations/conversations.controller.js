@@ -45,6 +45,29 @@ export const getConversations = async (req, res, next) => {
   }
 };
 
+export const addParticipants = async (req, res, next) => {
+  try {
+    const userId = getUserId(req, res);
+    if (!userId) {
+      return;
+    }
+
+    const { id } = req.params;
+    const { participantIds } = req.body;
+
+    const conversation =
+      await conversationsService.addParticipantsToConversation(
+        id,
+        userId,
+        participantIds
+      );
+
+    res.json(conversation);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const remove = async (req, res, next) => {
   try {
     const userId = getUserId(req, res);

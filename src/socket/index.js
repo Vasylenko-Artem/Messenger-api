@@ -41,6 +41,11 @@ const authenticateSocket = (socket, next) => {
   // console.log('HANDSHAKE AUTH:', socket.handshake.auth);
   // console.log('HANDSHAKE HEADERS:', socket.handshake.headers);
 
+  logger.info(
+    { socketId: socket.id, auth: socket.handshake.auth },
+    'Authenticating socket'
+  );
+
   const token = getSocketToken(socket);
 
   if (!token) {
