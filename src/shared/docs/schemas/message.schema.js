@@ -88,33 +88,4 @@ export const messageSchemas = {
       },
     },
   },
-
-  SendMessageRequest: {
-    type: 'object',
-    required: ['conversationId', 'content'],
-    properties: {
-      conversationId: {
-        type: 'string',
-        format: 'uuid',
-      },
-      content: {
-        type: 'string',
-        example: 'Hello',
-      },
-      type: {
-        $ref: '#/components/schemas/MessageType',
-      },
-    },
-  },
-
-  EditMessageRequest: {
-    type: 'object',
-    required: ['content'],
-    properties: {
-      content: {
-        type: 'string',
-        example: 'Updated message',
-      },
-    },
-  },
 };

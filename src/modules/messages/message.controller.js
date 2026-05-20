@@ -1,19 +1,12 @@
 import * as messagesService from './message.service.js';
 import { emitToConversation } from '../../socket/index.js';
 import { SOCKET_EVENTS } from '../../socket/events.js';
-import {
-  messagesValidation,
-  requireAuthUserId,
-  validateBody,
-  validateParams,
-} from '../../shared/validation/validators.js';
+import { requireAuthUserId } from '../../shared/validation/validators.js';
 
 export const create = async (req, res, next) => {
   try {
     const userId = requireAuthUserId(req);
-    const body = validateBody(messagesValidation.create, req);
-
-    const message = await messagesService.sendMessage(userId, body);
+    const message = await messagesService.sendMessage(userId, req.body);
 
     emitToConversation(
       message.conversationId,
@@ -30,10 +23,7 @@ export const create = async (req, res, next) => {
 export const getByConversation = async (req, res, next) => {
   try {
     const userId = requireAuthUserId(req);
-    const { conversationId } = validateParams(
-      messagesValidation.getByConversationParams,
-      req
-    );
+    const { conversationId } = req.params;
 
     const messages = await messagesService.getMessages(conversationId, userId);
 
@@ -46,10 +36,9 @@ export const getByConversation = async (req, res, next) => {
 export const update = async (req, res, next) => {
   try {
     const userId = requireAuthUserId(req);
-    const { id } = validateParams(messagesValidation.idParams, req);
-    const body = validateBody(messagesValidation.update, req);
+    const { id } = req.params;
 
-    const message = await messagesService.editMessage(id, userId, body);
+    const message = await messagesService.editMessage(id, userId, req.body);
 
     emitToConversation(
       message.conversationId,
@@ -66,7 +55,7 @@ export const update = async (req, res, next) => {
 export const markAsRead = async (req, res, next) => {
   try {
     const userId = requireAuthUserId(req);
-    const { id } = validateParams(messagesValidation.idParams, req);
+    const { id } = req.params;
 
     const status = await messagesService.markMessageAsRead(id, userId);
     const conversationId = await messagesService.getMessageConversationId(

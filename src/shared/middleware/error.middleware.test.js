@@ -9,6 +9,14 @@ const createResponse = () => ({
   status: jest.fn().mockReturnThis(),
 });
 
+const errorResponse = (code, message, details) => ({
+  error: {
+    code,
+    message,
+    ...(details ? { details } : {}),
+  },
+});
+
 describe('Error Middleware', () => {
   it('responds with status code from HttpError', () => {
     const error = new HttpError(418, 'Custom error');
@@ -17,7 +25,9 @@ describe('Error Middleware', () => {
     errorHandler(error, {}, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(418);
-    expect(res.json).toHaveBeenCalledWith({ message: 'Custom error' });
+    expect(res.json).toHaveBeenCalledWith(
+      errorResponse('HTTP_ERROR', 'Custom error')
+    );
   });
 
   it('maps known errors to http statuses', () => {
@@ -26,7 +36,9 @@ describe('Error Middleware', () => {
     errorHandler(new Error('Forbidden'), {}, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden' });
+    expect(res.json).toHaveBeenCalledWith(
+      errorResponse('FORBIDDEN', 'Forbidden')
+    );
   });
 
   it('responds with 400 for validation errors', () => {
@@ -35,7 +47,9 @@ describe('Error Middleware', () => {
     errorHandler(new ValidationError('Invalid input'), {}, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: 'Invalid input' });
+    expect(res.json).toHaveBeenCalledWith(
+      errorResponse('VALIDATION_ERROR', 'Invalid input')
+    );
   });
 
   it('hides unknown internal errors', () => {
@@ -44,9 +58,9 @@ describe('Error Middleware', () => {
     errorHandler(new Error('Unexpected failure'), {}, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({
-      message: 'Internal server error',
-    });
+    expect(res.json).toHaveBeenCalledWith(
+      errorResponse('INTERNAL_SERVER_ERROR', 'Internal server error')
+    );
   });
 
   it('includes validation details when present', () => {
@@ -62,8 +76,11 @@ describe('Error Middleware', () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({
-      message: 'Invalid input',
-      details,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid input',
+        details,
+      },
     });
   });
 
@@ -80,13 +97,17 @@ describe('Error Middleware', () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({
-      message: 'Validation failed',
-      details: [
-        expect.objectContaining({
-          field: 'email',
-          message: expect.any(String),
-        }),
-      ],
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Validation failed',
+        details: [
+          expect.objectContaining({
+            field: 'email',
+            message: expect.any(String),
+            code: expect.any(String),
+          }),
+        ],
+      },
     });
   });
 
@@ -101,13 +122,17 @@ describe('Error Middleware', () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({
-      message: 'Validation failed',
-      details: [
-        expect.objectContaining({
-          field: 'body',
-          message: expect.any(String),
-        }),
-      ],
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Validation failed',
+        details: [
+          expect.objectContaining({
+            field: 'body',
+            message: expect.any(String),
+            code: expect.any(String),
+          }),
+        ],
+      },
     });
   });
 
@@ -117,7 +142,9 @@ describe('Error Middleware', () => {
     errorHandler(new Error('Email already exists'), {}, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({ message: 'Email already exists' });
+    expect(res.json).toHaveBeenCalledWith(
+      errorResponse('CONFLICT', 'Email already exists')
+    );
   });
 
   it('maps Prisma unique constraint errors with field target', () => {
@@ -136,7 +163,9 @@ describe('Error Middleware', () => {
     errorHandler(error, {}, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({ message: 'email already exists' });
+    expect(res.json).toHaveBeenCalledWith(
+      errorResponse('CONFLICT', 'email already exists')
+    );
   });
 
   it('maps Prisma unique constraint errors without target', () => {
@@ -152,9 +181,9 @@ describe('Error Middleware', () => {
     errorHandler(error, {}, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({
-      message: 'Unique constraint failed',
-    });
+    expect(res.json).toHaveBeenCalledWith(
+      errorResponse('CONFLICT', 'Unique constraint failed')
+    );
   });
 
   it('maps Prisma not found errors', () => {
@@ -167,7 +196,9 @@ describe('Error Middleware', () => {
     errorHandler(error, {}, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ message: 'Resource not found' });
+    expect(res.json).toHaveBeenCalledWith(
+      errorResponse('NOT_FOUND', 'Resource not found')
+    );
   });
 
   it('hides unknown Prisma errors', () => {
@@ -180,9 +211,9 @@ describe('Error Middleware', () => {
     errorHandler(error, {}, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({
-      message: 'Internal server error',
-    });
+    expect(res.json).toHaveBeenCalledWith(
+      errorResponse('INTERNAL_SERVER_ERROR', 'Internal server error')
+    );
   });
 
   it('delegates when headers were already sent', () => {

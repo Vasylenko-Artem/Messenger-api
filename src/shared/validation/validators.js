@@ -1,6 +1,12 @@
+import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
 import { unauthorized } from '../errors/http-error.js';
+
+extendZodWithOpenApi(z);
+
+export const conversationTypes = ['PRIVATE', 'GROUP'];
+export const messageTypes = ['TEXT', 'IMAGE', 'FILE'];
 
 const requiredString = (field) =>
   z
@@ -18,11 +24,25 @@ const requiredStringArray = (field) =>
 const atLeastOneField = () => (data) =>
   Object.values(data).some((value) => value !== undefined);
 
-export const validate = (schema, data) => schema.parse(data);
+/**
+ * Express middleware to validate request data using a Zod schema.
+ * @param {z.ZodSchema} schema - The Zod schema to validate against.
+ * @param {'body' | 'params' | 'query'} source - The request property to validate.
+ */
+export const validate =
+  (schema, source = 'body') =>
+  (req, res, next) => {
+    try {
+      req[source] = schema.parse(req[source]);
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 
-export const validateBody = (schema, req) => validate(schema, req.body);
+export const validateBody = (schema, req) => schema.parse(req.body);
 
-export const validateParams = (schema, req) => validate(schema, req.params);
+export const validateParams = (schema, req) => schema.parse(req.params);
 
 export const requireAuthUserId = (req) => {
   const id = req.user?.id;
@@ -37,84 +57,118 @@ export const requireAuthUserId = (req) => {
 export const authValidation = {
   register: z
     .object({
-      username: requiredString('username'),
-      email: requiredString('email').email({ error: 'email must be valid' }),
-      password: requiredString('password').min(6, {
-        error: 'password must be at least 6 characters',
-      }),
+      username: requiredString('username').openapi({ example: 'testuser' }),
+      email: requiredString('email')
+        .email({ error: 'email must be valid' })
+        .openapi({ example: 'test@example.com' }),
+      password: requiredString('password')
+        .min(6, {
+          error: 'password must be at least 6 characters',
+        })
+        .openapi({ example: '123456' }),
     })
-    .strict(),
+    .strict()
+    .openapi('RegisterRequest'),
 
   login: z
     .object({
-      username: requiredString('username'),
-      password: requiredString('password'),
+      username: requiredString('username').openapi({ example: 'testuser' }),
+      password: requiredString('password').openapi({ example: '123456' }),
     })
-    .strict(),
+    .strict()
+    .openapi('LoginRequest'),
 };
 
 export const usersValidation = {
   updateMe: z
     .object({
-      username: requiredString('username').optional(),
+      username: requiredString('username')
+        .optional()
+        .openapi({ example: 'newusername' }),
       email: requiredString('email')
         .email({ error: 'email must be valid' })
-        .optional(),
+        .optional()
+        .openapi({ example: 'new@example.com' }),
       password: requiredString('password')
         .min(6, { error: 'password must be at least 6 characters' })
-        .optional(),
+        .optional()
+        .openapi({ example: 'new-password' }),
     })
     .strict()
-    .refine(atLeastOneField(), { error: 'No fields to update' }),
+    .refine(atLeastOneField(), { error: 'No fields to update' })
+    .openapi('UpdateUserRequest'),
 };
 
 export const conversationsValidation = {
   create: z
     .object({
-      type: z.enum(['PRIVATE', 'GROUP'], {
-        error: 'type must be one of: PRIVATE, GROUP',
+      type: z
+        .enum(conversationTypes, {
+          error: 'type must be one of: PRIVATE, GROUP',
+        })
+        .openapi({ example: 'PRIVATE' }),
+      participantIds: requiredStringArray('participantIds').openapi({
+        example: ['9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9'],
       }),
-      participantIds: requiredStringArray('participantIds'),
     })
-    .strict(),
+    .strict()
+    .openapi('CreateConversationRequest'),
 
   addParticipants: z
     .object({
-      participantIds: requiredStringArray('participantIds'),
+      participantIds: requiredStringArray('participantIds').openapi({
+        example: ['9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9'],
+      }),
     })
-    .strict(),
+    .strict()
+    .openapi('AddConversationParticipantsRequest'),
 
   idParams: z
     .object({
-      id: requiredString('id'),
+      id: requiredString('id').openapi({
+        example: '9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9',
+      }),
     })
-    .strict(),
+    .strict()
+    .openapi('IdParams'),
 };
 
 export const messagesValidation = {
   create: z
     .object({
-      conversationId: requiredString('conversationId'),
-      content: requiredString('content'),
-      type: z.enum(['TEXT', 'IMAGE', 'FILE']).optional(),
+      conversationId: requiredString('conversationId').openapi({
+        example: '9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9',
+      }),
+      content: requiredString('content').openapi({ example: 'Hello' }),
+      type: z.enum(messageTypes).optional().openapi({ example: 'TEXT' }),
     })
-    .strict(),
+    .strict()
+    .openapi('SendMessageRequest'),
 
   getByConversationParams: z
     .object({
-      conversationId: requiredString('conversationId'),
+      conversationId: requiredString('conversationId').openapi({
+        example: '9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9',
+      }),
     })
-    .strict(),
+    .strict()
+    .openapi('GetMessagesParams'),
 
   update: z
     .object({
-      content: requiredString('content'),
+      content: requiredString('content').openapi({
+        example: 'Updated message',
+      }),
     })
-    .strict(),
+    .strict()
+    .openapi('EditMessageRequest'),
 
   idParams: z
     .object({
-      id: requiredString('id'),
+      id: requiredString('id').openapi({
+        example: '9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9',
+      }),
     })
-    .strict(),
+    .strict()
+    .openapi('MessageIdParams'),
 };

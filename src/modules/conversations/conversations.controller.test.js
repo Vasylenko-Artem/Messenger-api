@@ -70,29 +70,6 @@ describe('Conversations Controller', () => {
       );
       expect(res.status).not.toHaveBeenCalled();
     });
-
-    it('passes 400 error when validation fails', async () => {
-      const req = {
-        user: { id: 'user-id' },
-        body: {
-          type: 'UNKNOWN',
-          participantIds: [],
-        },
-      };
-      const res = createResponse();
-      const next = jest.fn();
-
-      await create(req, res, next);
-
-      expect(conversationsService.createConversation).not.toHaveBeenCalled();
-      expect(next).toHaveBeenCalledWith(
-        expect.objectContaining({
-          issues: expect.arrayContaining([
-            expect.objectContaining({ path: ['type'] }),
-          ]),
-        })
-      );
-    });
   });
 
   describe('getConversations', () => {

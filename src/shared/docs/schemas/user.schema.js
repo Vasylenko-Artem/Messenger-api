@@ -34,24 +34,4 @@ export const userSchemas = {
       },
     },
   },
-
-  UpdateUserRequest: {
-    type: 'object',
-    properties: {
-      username: {
-        type: 'string',
-        example: 'newusername',
-      },
-      email: {
-        type: 'string',
-        format: 'email',
-        example: 'new@example.com',
-      },
-      password: {
-        type: 'string',
-        format: 'password',
-        example: 'new-password',
-      },
-    },
-  },
 };

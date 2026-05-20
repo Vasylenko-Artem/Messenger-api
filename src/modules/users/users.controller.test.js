@@ -123,8 +123,6 @@ describe('Users Controller', () => {
 
       expect(usersService.updateCurrentUser).toHaveBeenCalledWith('user-id', {
         username: 'updated',
-        email: undefined,
-        password: undefined,
       });
       expect(res.json).toHaveBeenCalledWith({ user });
     });
@@ -151,8 +149,6 @@ describe('Users Controller', () => {
       await updateMe(req, res);
 
       expect(usersService.updateCurrentUser).toHaveBeenCalledWith('user-id', {
-        username: undefined,
-        email: undefined,
         password: 'new-password',
       });
       expect(res.json).toHaveBeenCalledWith({ user });
@@ -174,28 +170,6 @@ describe('Users Controller', () => {
         expect.objectContaining({ message: 'Unauthorized', statusCode: 401 })
       );
       expect(res.status).not.toHaveBeenCalled();
-    });
-
-    it('passes 400 error when update validation fails', async () => {
-      const req = {
-        user: {
-          id: 'user-id',
-        },
-        body: {},
-      };
-      const res = createResponse();
-      const next = jest.fn();
-
-      await updateMe(req, res, next);
-
-      expect(usersService.updateCurrentUser).not.toHaveBeenCalled();
-      expect(next).toHaveBeenCalledWith(
-        expect.objectContaining({
-          issues: expect.arrayContaining([
-            expect.objectContaining({ message: 'No fields to update' }),
-          ]),
-        })
-      );
     });
   });
 });

@@ -67,37 +67,4 @@ export const conversationSchemas = {
       },
     },
   },
-
-  CreateConversationRequest: {
-    type: 'object',
-    required: ['type', 'participantIds'],
-    properties: {
-      type: {
-        $ref: '#/components/schemas/ConversationType',
-      },
-      participantIds: {
-        type: 'array',
-        items: {
-          type: 'string',
-          format: 'uuid',
-        },
-        example: ['9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9'],
-      },
-    },
-  },
-
-  AddConversationParticipantsRequest: {
-    type: 'object',
-    required: ['participantIds'],
-    properties: {
-      participantIds: {
-        type: 'array',
-        items: {
-          type: 'string',
-          format: 'uuid',
-        },
-        example: ['9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9'],
-      },
-    },
-  },
 };

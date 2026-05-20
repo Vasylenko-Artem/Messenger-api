@@ -1,9 +1,20 @@
+const defaultErrorCodeByStatus = {
+  400: 'BAD_REQUEST',
+  401: 'UNAUTHORIZED',
+  403: 'FORBIDDEN',
+  404: 'NOT_FOUND',
+  409: 'CONFLICT',
+  500: 'INTERNAL_SERVER_ERROR',
+};
+
 export class HttpError extends Error {
   constructor(statusCode, message, options = {}) {
     super(message);
     this.name = this.constructor.name;
     this.statusCode = statusCode;
     this.expose = options.expose ?? statusCode < 500;
+    this.code =
+      options.code || defaultErrorCodeByStatus[statusCode] || 'HTTP_ERROR';
     this.details = options.details;
     Error.captureStackTrace?.(this, this.constructor);
   }
@@ -11,7 +22,7 @@ export class HttpError extends Error {
 
 export class ValidationError extends HttpError {
   constructor(message = 'Validation failed', details = []) {
-    super(400, message, { details });
+    super(400, message, { code: 'VALIDATION_ERROR', details });
   }
 }
 

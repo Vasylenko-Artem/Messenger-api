@@ -1,12 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
 
-import {
-  HttpError,
-  badRequest,
-  conflict,
-  notFound,
-} from '../errors/http-error.js';
+import { HttpError, conflict, notFound } from '../errors/http-error.js';
 import { logger } from '../logger/logger.js';
 
 const knownErrorStatusByMessage = {
@@ -51,13 +46,14 @@ const normalizeZodError = (error) => {
     return null;
   }
 
-  return badRequest(
-    'Validation failed',
-    error.issues.map((issue) => ({
+  return new HttpError(400, 'Validation failed', {
+    code: 'VALIDATION_ERROR',
+    details: error.issues.map((issue) => ({
       field: issue.path.join('.') || 'body',
       message: issue.message,
-    }))
-  );
+      code: issue.code,
+    })),
+  });
 };
 
 export const normalizeError = (error) => {
@@ -97,16 +93,21 @@ export const errorHandler = (error, req, res, next) => {
   );
 
   const response = {
-    message: normalizedError.expose
-      ? normalizedError.message
-      : 'Internal server error',
+    error: {
+      code: normalizedError.expose
+        ? normalizedError.code
+        : 'INTERNAL_SERVER_ERROR',
+      message: normalizedError.expose
+        ? normalizedError.message
+        : 'Internal server error',
+    },
   };
 
   if (
     normalizedError.details &&
     (!Array.isArray(normalizedError.details) || normalizedError.details.length)
   ) {
-    response.details = normalizedError.details;
+    response.error.details = normalizedError.details;
   }
 
   res.status(normalizedError.statusCode).json(response);

@@ -17,6 +17,7 @@ describe('HTTP errors', () => {
       message: 'Bad input',
       statusCode: 400,
       expose: true,
+      code: 'BAD_REQUEST',
       details: undefined,
     });
   });
@@ -32,6 +33,7 @@ describe('HTTP errors', () => {
       message: 'Public failure',
       statusCode: 500,
       expose: true,
+      code: 'INTERNAL_SERVER_ERROR',
       details,
     });
   });
@@ -44,11 +46,13 @@ describe('HTTP errors', () => {
     expect(defaultError).toMatchObject({
       message: 'Validation failed',
       statusCode: 400,
+      code: 'VALIDATION_ERROR',
       details: [],
     });
     expect(customError).toMatchObject({
       message: 'Invalid body',
       statusCode: 400,
+      code: 'VALIDATION_ERROR',
       details,
     });
   });

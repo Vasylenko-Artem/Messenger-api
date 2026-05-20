@@ -1,20 +1,15 @@
 import * as conversationsService from './conversations.service.js';
-import {
-  conversationsValidation,
-  requireAuthUserId,
-  validateBody,
-  validateParams,
-} from '../../shared/validation/validators.js';
+import { requireAuthUserId } from '../../shared/validation/validators.js';
 
 export const create = async (req, res, next) => {
   try {
     const userId = requireAuthUserId(req);
-    const body = validateBody(conversationsValidation.create, req);
+    const { type, participantIds } = req.body;
 
     const conversation = await conversationsService.createConversation(
       userId,
-      body.type,
-      body.participantIds
+      type,
+      participantIds
     );
 
     res.status(201).json(conversation);
@@ -38,11 +33,8 @@ export const getConversations = async (req, res, next) => {
 export const addParticipants = async (req, res, next) => {
   try {
     const userId = requireAuthUserId(req);
-    const { id } = validateParams(conversationsValidation.idParams, req);
-    const { participantIds } = validateBody(
-      conversationsValidation.addParticipants,
-      req
-    );
+    const { id } = req.params;
+    const { participantIds } = req.body;
 
     const conversation =
       await conversationsService.addParticipantsToConversation(
@@ -60,7 +52,7 @@ export const addParticipants = async (req, res, next) => {
 export const remove = async (req, res, next) => {
   try {
     const userId = requireAuthUserId(req);
-    const { id } = validateParams(conversationsValidation.idParams, req);
+    const { id } = req.params;
 
     await conversationsService.deleteConversation(id, userId);
 

@@ -12,6 +12,65 @@ import {
 } from './validators.js';
 
 describe('Validators', () => {
+  describe('validate middleware', () => {
+    it('calls next() and updates req.body on success', () => {
+      const schema = authValidation.login;
+      const middleware = validate(schema);
+      const req = {
+        body: {
+          username: ' test ',
+          password: ' password ',
+        },
+      };
+      const res = {};
+      const next = jest.fn();
+
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalledWith();
+      expect(req.body).toEqual({
+        username: 'test',
+        password: 'password',
+      });
+    });
+
+    it('calls next() and updates req.params on success', () => {
+      const schema = conversationsValidation.idParams;
+      const middleware = validate(schema, 'params');
+      const req = {
+        params: {
+          id: ' 9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9 ',
+        },
+      };
+      const res = {};
+      const next = jest.fn();
+
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalledWith();
+      expect(req.params).toEqual({
+        id: '9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9',
+      });
+    });
+
+    it('calls next(error) on validation failure', () => {
+      const schema = authValidation.login;
+      const middleware = validate(schema);
+      const req = {
+        body: {
+          username: '',
+          password: '123',
+        },
+      };
+      const res = {};
+      const next = jest.fn();
+
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(expect.any(ZodError));
+    });
+  });
+
   it('validates request bodies', () => {
     const req = {
       body: {
@@ -31,9 +90,9 @@ describe('Validators', () => {
   it('validates request params', () => {
     expect(
       validateParams(messagesValidation.idParams, {
-        params: { id: 'message-id' },
+        params: { id: '9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9' },
       })
-    ).toEqual({ id: 'message-id' });
+    ).toEqual({ id: '9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9' });
   });
 
   it('returns authenticated user id', () => {
@@ -43,7 +102,7 @@ describe('Validators', () => {
 
   it('validates auth payloads', () => {
     expect(
-      validate(authValidation.login, {
+      authValidation.login.parse({
         username: ' test ',
         password: ' password ',
       })
@@ -53,7 +112,7 @@ describe('Validators', () => {
     });
 
     expect(() =>
-      validate(authValidation.register, {
+      authValidation.register.parse({
         username: '',
         email: 'bad-email',
         password: '123',
@@ -63,7 +122,7 @@ describe('Validators', () => {
 
   it('validates user update payloads', () => {
     expect(
-      validate(usersValidation.updateMe, {
+      usersValidation.updateMe.parse({
         username: ' new ',
         email: 'new@example.com',
         password: 'new-password',
@@ -74,37 +133,41 @@ describe('Validators', () => {
       password: 'new-password',
     });
 
-    expect(() => validate(usersValidation.updateMe, {})).toThrow(ZodError);
+    expect(() => usersValidation.updateMe.parse({})).toThrow(ZodError);
     expect(() =>
-      validate(usersValidation.updateMe, { email: 'bad-email' })
+      usersValidation.updateMe.parse({ email: 'bad-email' })
     ).toThrow(ZodError);
   });
 
   it('validates conversation payloads and params', () => {
     expect(
-      validate(conversationsValidation.create, {
+      conversationsValidation.create.parse({
         type: 'PRIVATE',
-        participantIds: [' participant-id '],
+        participantIds: [' 9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9 '],
       })
     ).toEqual({
       type: 'PRIVATE',
-      participantIds: ['participant-id'],
+      participantIds: ['9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9'],
     });
 
     expect(
-      validate(conversationsValidation.addParticipants, {
-        participantIds: [' user-id '],
+      conversationsValidation.addParticipants.parse({
+        participantIds: [' 9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9 '],
       })
     ).toEqual({
-      participantIds: ['user-id'],
+      participantIds: ['9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9'],
     });
 
-    expect(validate(conversationsValidation.idParams, { id: 'id' })).toEqual({
-      id: 'id',
+    expect(
+      conversationsValidation.idParams.parse({
+        id: ' 9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9 ',
+      })
+    ).toEqual({
+      id: '9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9',
     });
 
     expect(() =>
-      validate(conversationsValidation.create, {
+      conversationsValidation.create.parse({
         type: 'UNKNOWN',
         participantIds: [],
       })
@@ -113,31 +176,29 @@ describe('Validators', () => {
 
   it('validates message payloads and params', () => {
     expect(
-      validate(messagesValidation.create, {
-        conversationId: ' conversation-id ',
+      messagesValidation.create.parse({
+        conversationId: ' 9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9 ',
         content: ' hello ',
         type: 'TEXT',
       })
     ).toEqual({
-      conversationId: 'conversation-id',
+      conversationId: '9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9',
       content: 'hello',
       type: 'TEXT',
     });
 
-    expect(
-      validate(messagesValidation.update, { content: ' updated ' })
-    ).toEqual({
+    expect(messagesValidation.update.parse({ content: ' updated ' })).toEqual({
       content: 'updated',
     });
 
     expect(
-      validate(messagesValidation.getByConversationParams, {
-        conversationId: 'conversation-id',
+      messagesValidation.getByConversationParams.parse({
+        conversationId: ' 9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9 ',
       })
-    ).toEqual({ conversationId: 'conversation-id' });
+    ).toEqual({ conversationId: '9c2eab54-0c7e-4e0d-980a-9f1ff5297ec9' });
 
     expect(() =>
-      validate(messagesValidation.create, {
+      messagesValidation.create.parse({
         conversationId: '',
         content: '',
         type: 'UNKNOWN',

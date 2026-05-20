@@ -6,8 +6,31 @@ import { authSchemas } from './schemas/auth.schema.js';
 import { conversationSchemas } from './schemas/conversation.schema.js';
 import { messageSchemas } from './schemas/message.schema.js';
 import { userSchemas } from './schemas/user.schema.js';
+import { validationSchemas } from './schemas/validation.schema.js';
 
 import swaggerJSDoc from 'swagger-jsdoc';
+import { OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi';
+import {
+  authValidation,
+  conversationsValidation,
+  messagesValidation,
+  usersValidation,
+} from '../validation/validators.js';
+
+const generator = new OpenApiGeneratorV3([
+  authValidation.register,
+  authValidation.login,
+  usersValidation.updateMe,
+  conversationsValidation.create,
+  conversationsValidation.addParticipants,
+  conversationsValidation.idParams,
+  messagesValidation.create,
+  messagesValidation.getByConversationParams,
+  messagesValidation.update,
+  messagesValidation.idParams,
+]);
+
+const zodComponents = generator.generateComponents();
 
 const swaggerDefinition = {
   openapi: '3.0.0',
@@ -59,28 +82,191 @@ const swaggerDefinition = {
       ...userSchemas,
       ...conversationSchemas,
       ...messageSchemas,
+      ...validationSchemas,
+      ...zodComponents.schemas,
       ErrorResponse: {
         type: 'object',
-        required: ['message'],
+        required: ['error'],
+        properties: {
+          error: {
+            type: 'object',
+            required: ['code', 'message'],
+            properties: {
+              code: {
+                type: 'string',
+                example: 'VALIDATION_ERROR',
+              },
+              message: {
+                type: 'string',
+                example: 'Validation failed',
+              },
+              details: {
+                type: 'array',
+                items: {
+                  $ref: '#/components/schemas/ErrorDetail',
+                },
+              },
+            },
+          },
+        },
+      },
+      ErrorDetail: {
+        type: 'object',
+        required: ['field', 'message'],
+        properties: {
+          field: {
+            type: 'string',
+            example: 'email',
+          },
+          message: {
+            type: 'string',
+            example: 'email must be valid',
+          },
+          code: {
+            type: 'string',
+            example: 'invalid_format',
+          },
+        },
+      },
+      ValidationErrorResponse: {
+        type: 'object',
+        required: ['error'],
+        properties: {
+          error: {
+            type: 'object',
+            required: ['code', 'message', 'details'],
+            properties: {
+              code: {
+                type: 'string',
+                example: 'VALIDATION_ERROR',
+              },
+              message: {
+                type: 'string',
+                example: 'Validation failed',
+              },
+              details: {
+                type: 'array',
+                items: {
+                  $ref: '#/components/schemas/ErrorDetail',
+                },
+              },
+            },
+          },
+        },
+      },
+      ConflictErrorResponse: {
+        type: 'object',
+        required: ['error'],
+        properties: {
+          error: {
+            type: 'object',
+            required: ['code', 'message'],
+            properties: {
+              code: {
+                type: 'string',
+                example: 'CONFLICT',
+              },
+              message: {
+                type: 'string',
+                example: 'Email already exists',
+              },
+            },
+          },
+        },
+      },
+      UnauthorizedErrorResponse: {
+        type: 'object',
+        required: ['error'],
+        properties: {
+          error: {
+            type: 'object',
+            required: ['code', 'message'],
+            properties: {
+              code: {
+                type: 'string',
+                example: 'UNAUTHORIZED',
+              },
+              message: {
+                type: 'string',
+                example: 'Unauthorized',
+              },
+            },
+          },
+        },
+      },
+      ForbiddenErrorResponse: {
+        type: 'object',
+        required: ['error'],
+        properties: {
+          error: {
+            type: 'object',
+            required: ['code', 'message'],
+            properties: {
+              code: {
+                type: 'string',
+                example: 'FORBIDDEN',
+              },
+              message: {
+                type: 'string',
+                example: 'Forbidden',
+              },
+            },
+          },
+        },
+      },
+      NotFoundErrorResponse: {
+        type: 'object',
+        required: ['error'],
+        properties: {
+          error: {
+            type: 'object',
+            required: ['code', 'message'],
+            properties: {
+              code: {
+                type: 'string',
+                example: 'NOT_FOUND',
+              },
+              message: {
+                type: 'string',
+                example: 'Resource not found',
+              },
+            },
+          },
+        },
+      },
+      InternalErrorResponse: {
+        type: 'object',
+        required: ['error'],
+        properties: {
+          error: {
+            type: 'object',
+            required: ['code', 'message'],
+            properties: {
+              code: {
+                type: 'string',
+                example: 'INTERNAL_SERVER_ERROR',
+              },
+              message: {
+                type: 'string',
+                example: 'Internal server error',
+              },
+            },
+          },
+        },
+      },
+      LegacyErrorResponse: {
+        type: 'object',
         properties: {
           message: {
             type: 'string',
+            deprecated: true,
             example: 'Error message',
           },
           details: {
             type: 'array',
+            deprecated: true,
             items: {
               type: 'object',
-              properties: {
-                field: {
-                  type: 'string',
-                  example: 'email',
-                },
-                message: {
-                  type: 'string',
-                  example: 'email must be a valid email',
-                },
-              },
             },
           },
         },
@@ -92,7 +278,14 @@ const swaggerDefinition = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/ErrorResponse',
+              oneOf: [
+                {
+                  $ref: '#/components/schemas/ValidationErrorResponse',
+                },
+                {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              ],
             },
           },
         },
@@ -102,7 +295,7 @@ const swaggerDefinition = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/ErrorResponse',
+              $ref: '#/components/schemas/UnauthorizedErrorResponse',
             },
           },
         },
@@ -112,7 +305,7 @@ const swaggerDefinition = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/ErrorResponse',
+              $ref: '#/components/schemas/ForbiddenErrorResponse',
             },
           },
         },
@@ -122,7 +315,7 @@ const swaggerDefinition = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/ErrorResponse',
+              $ref: '#/components/schemas/NotFoundErrorResponse',
             },
           },
         },
@@ -132,7 +325,7 @@ const swaggerDefinition = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/ErrorResponse',
+              $ref: '#/components/schemas/ConflictErrorResponse',
             },
           },
         },

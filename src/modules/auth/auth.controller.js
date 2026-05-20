@@ -1,9 +1,5 @@
 import * as authService from './auth.service.js';
 import { unauthorized } from '../../shared/errors/http-error.js';
-import {
-  authValidation,
-  validateBody,
-} from '../../shared/validation/validators.js';
 
 const durationToMs = (value) => {
   const match = /^(\d+)([smhd])$/.exec(value);
@@ -35,8 +31,7 @@ const getCookieOptions = (ttl) => ({
 
 export const register = async (req, res, next) => {
   try {
-    const body = validateBody(authValidation.register, req);
-    const user = await authService.register(body);
+    const user = await authService.register(req.body);
     res.json({ message: `User ${user.username} registered successfully` });
   } catch (error) {
     next(error);
@@ -45,8 +40,7 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const body = validateBody(authValidation.login, req);
-    const { accessToken, refreshToken } = await authService.login(body);
+    const { accessToken, refreshToken } = await authService.login(req.body);
 
     res
       .cookie(
