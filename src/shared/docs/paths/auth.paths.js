@@ -8,19 +8,28 @@ export const authPaths = {
         content: {
           'application/json': {
             schema: {
-              type: 'object',
-              required: ['username', 'password'],
-              properties: {
-                username: { type: 'string', example: 'testuser' },
-                password: { type: 'string', example: '123456' },
-              },
+              $ref: '#/components/schemas/RegisterRequest',
             },
           },
         },
       },
       responses: {
-        200: { description: 'User registered successfully' },
-        400: { description: 'Bad request' },
+        200: {
+          description: 'User registered successfully',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/MessageResponse',
+              },
+            },
+          },
+        },
+        400: {
+          $ref: '#/components/responses/BadRequest',
+        },
+        409: {
+          $ref: '#/components/responses/Conflict',
+        },
       },
     },
   },
@@ -34,19 +43,37 @@ export const authPaths = {
         content: {
           'application/json': {
             schema: {
-              type: 'object',
-              required: ['username', 'password'],
-              properties: {
-                username: { type: 'string' },
-                password: { type: 'string' },
-              },
+              $ref: '#/components/schemas/LoginRequest',
             },
           },
         },
       },
       responses: {
-        200: { description: 'Logged in, tokens set in cookies' },
-        401: { description: 'Invalid credentials' },
+        200: {
+          description: 'Logged in, tokens set in httpOnly cookies',
+          headers: {
+            'Set-Cookie': {
+              schema: {
+                type: 'string',
+                example:
+                  'accessToken=jwt; HttpOnly; SameSite=Strict, refreshToken=jwt; HttpOnly; SameSite=Strict',
+              },
+            },
+          },
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/MessageResponse',
+              },
+            },
+          },
+        },
+        401: {
+          $ref: '#/components/responses/Unauthorized',
+        },
+        400: {
+          $ref: '#/components/responses/BadRequest',
+        },
       },
     },
   },
@@ -55,9 +82,21 @@ export const authPaths = {
     post: {
       summary: 'Refresh access token',
       tags: ['Auth'],
+      security: [{ refreshTokenCookie: [] }],
       responses: {
-        200: { description: 'Token refreshed' },
-        401: { description: 'No or invalid refresh token' },
+        200: {
+          description: 'Tokens refreshed and set in httpOnly cookies',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/MessageResponse',
+              },
+            },
+          },
+        },
+        401: {
+          $ref: '#/components/responses/Unauthorized',
+        },
       },
     },
   },
@@ -66,8 +105,21 @@ export const authPaths = {
     post: {
       summary: 'Logout user',
       tags: ['Auth'],
+      security: [{ accessTokenCookie: [] }],
       responses: {
-        200: { description: 'Logged out successfully' },
+        200: {
+          description: 'Logged out successfully',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/MessageResponse',
+              },
+            },
+          },
+        },
+        401: {
+          $ref: '#/components/responses/Unauthorized',
+        },
       },
     },
   },
@@ -76,26 +128,21 @@ export const authPaths = {
     get: {
       summary: 'Get current user status',
       tags: ['Auth'],
+      security: [{ accessTokenCookie: [] }],
       responses: {
         200: {
           description: 'User info',
           content: {
             'application/json': {
               schema: {
-                type: 'object',
-                properties: {
-                  user: {
-                    type: 'object',
-                    properties: {
-                      username: { type: 'string' },
-                    },
-                  },
-                },
+                $ref: '#/components/schemas/AuthStatusResponse',
               },
             },
           },
         },
-        401: { description: 'Not authenticated' },
+        401: {
+          $ref: '#/components/responses/Unauthorized',
+        },
       },
     },
   },

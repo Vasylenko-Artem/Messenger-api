@@ -1,26 +1,26 @@
-export const conversationPaths = {
-  '/conversations': {
+export const messagePaths = {
+  '/messages': {
     post: {
-      summary: 'Create new conversation',
-      tags: ['Conversations'],
+      summary: 'Send message',
+      tags: ['Messages'],
       security: [{ accessTokenCookie: [] }],
       requestBody: {
         required: true,
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/CreateConversationRequest',
+              $ref: '#/components/schemas/SendMessageRequest',
             },
           },
         },
       },
       responses: {
         201: {
-          description: 'Conversation created',
+          description: 'Message sent',
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/Conversation',
+                $ref: '#/components/schemas/Message',
               },
             },
           },
@@ -31,63 +31,95 @@ export const conversationPaths = {
         401: {
           $ref: '#/components/responses/Unauthorized',
         },
-      },
-    },
-
-    get: {
-      summary: 'Get user conversations',
-      tags: ['Conversations'],
-      security: [{ accessTokenCookie: [] }],
-      responses: {
-        200: {
-          description: 'List of conversations',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'array',
-                items: {
-                  $ref: '#/components/schemas/Conversation',
-                },
-              },
-            },
-          },
-        },
-        401: {
-          $ref: '#/components/responses/Unauthorized',
+        403: {
+          $ref: '#/components/responses/Forbidden',
         },
       },
     },
   },
 
-  '/conversations/{id}': {
-    delete: {
-      summary: 'Delete conversation',
-      tags: ['Conversations'],
+  '/messages/{conversationId}': {
+    get: {
+      summary: 'Get conversation messages',
+      tags: ['Messages'],
+      security: [{ accessTokenCookie: [] }],
+      parameters: [
+        {
+          name: 'conversationId',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Conversation messages',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: {
+                  $ref: '#/components/schemas/Message',
+                },
+              },
+            },
+          },
+        },
+        400: {
+          $ref: '#/components/responses/BadRequest',
+        },
+        401: {
+          $ref: '#/components/responses/Unauthorized',
+        },
+        403: {
+          $ref: '#/components/responses/Forbidden',
+        },
+      },
+    },
+  },
+
+  '/messages/{id}': {
+    patch: {
+      summary: 'Edit message',
+      tags: ['Messages'],
       security: [{ accessTokenCookie: [] }],
       parameters: [
         {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' },
+          schema: {
+            type: 'string',
+            format: 'uuid',
+          },
         },
       ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              $ref: '#/components/schemas/EditMessageRequest',
+            },
+          },
+        },
+      },
       responses: {
         200: {
-          description: 'Deleted',
+          description: 'Updated message',
           content: {
             'application/json': {
               schema: {
-                type: 'object',
-                properties: {
-                  success: {
-                    type: 'boolean',
-                    example: true,
-                  },
-                },
+                $ref: '#/components/schemas/Message',
               },
             },
           },
+        },
+        400: {
+          $ref: '#/components/responses/BadRequest',
         },
         401: {
           $ref: '#/components/responses/Unauthorized',
@@ -102,42 +134,32 @@ export const conversationPaths = {
     },
   },
 
-  '/conversations/{id}/participants': {
-    post: {
-      summary: 'Add participants to group conversation',
-      tags: ['Conversations'],
+  '/messages/{id}/read': {
+    patch: {
+      summary: 'Mark message as read',
+      tags: ['Messages'],
       security: [{ accessTokenCookie: [] }],
       parameters: [
         {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' },
-        },
-      ],
-      requestBody: {
-        required: true,
-        content: {
-          'application/json': {
-            schema: {
-              $ref: '#/components/schemas/AddConversationParticipantsRequest',
-            },
+          schema: {
+            type: 'string',
+            format: 'uuid',
           },
         },
-      },
+      ],
       responses: {
         200: {
-          description: 'Updated conversation',
+          description: 'Message read status',
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/Conversation',
+                $ref: '#/components/schemas/MessageStatus',
               },
             },
           },
-        },
-        400: {
-          $ref: '#/components/responses/BadRequest',
         },
         401: {
           $ref: '#/components/responses/Unauthorized',

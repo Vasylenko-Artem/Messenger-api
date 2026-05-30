@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
 import { env } from '../../shared/config/env.js';
+import { unauthorized } from '../../shared/errors/http-error.js';
 
 import * as usersService from '../users/users.service.js';
 const SALT_ROUNDS = 10;
@@ -34,10 +35,10 @@ export const register = async ({ username, email, password }) => {
 export const login = async ({ username, password }) => {
   const user = await usersService.getUserByUsername(username);
 
-  if (!user) throw new Error('Invalid credentials');
+  if (!user) throw unauthorized('Invalid credentials');
 
   const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) throw new Error('Invalid credentials');
+  if (!ok) throw unauthorized('Invalid credentials');
 
   return generateTokens(user);
 };
@@ -51,6 +52,6 @@ export const refreshToken = (token) => {
       username: payload.username,
     });
   } catch {
-    throw new Error('Invalid refresh token');
+    throw unauthorized('Invalid refresh token');
   }
 };

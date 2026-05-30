@@ -1,67 +1,88 @@
 import * as authService from './auth.service.js';
+import { unauthorized } from '../../shared/errors/http-error.js';
 
-export const register = async (req, res) => {
+const durationToMs = (value) => {
+  const match = /^(\d+)([smhd])$/.exec(value);
+
+  if (!match) {
+    throw new Error(`Invalid TTL value: ${value}`);
+  }
+
+  const amount = Number(match[1]);
+  const unit = match[2]; // index
+
+  const unitToMs = {
+    s: 1000,
+    m: 1000 * 60,
+    h: 1000 * 60 * 60,
+    d: 1000 * 60 * 60 * 24,
+  };
+
+  return amount * unitToMs[unit];
+};
+
+const getCookieOptions = (ttl) => ({
+  httpOnly: true,
+  // secure: true, // true for HTTPS
+  secure: false,
+  sameSite: 'strict',
+  maxAge: durationToMs(ttl),
+});
+
+export const register = async (req, res, next) => {
   try {
     const user = await authService.register(req.body);
     res.json({ message: `User ${user.username} registered successfully` });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 };
 
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
   try {
     const { accessToken, refreshToken } = await authService.login(req.body);
 
     res
-      .cookie('accessToken', accessToken, {
-        httpOnly: true,
-        // secure: true, // true for HTTPS
-        secure: false,
-        sameSite: 'strict',
-        maxAge: 1000 * 60 * 60, // 1h
-      })
-      .cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        // secure: true,
-        secure: false,
-        sameSite: 'strict',
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 7d
-      })
+      .cookie(
+        'accessToken',
+        accessToken,
+        getCookieOptions(process.env.JWT_ACCES_TOKEN_TTL)
+      )
+      .cookie(
+        'refreshToken',
+        refreshToken,
+        getCookieOptions(process.env.JWT_REFRESH_TOKEN_TTL)
+      )
       .json({ message: 'Logged in' });
   } catch (error) {
-    res.status(401).json({ message: error.message });
+    next(error);
   }
 };
 
-export const refreshToken = async (req, res) => {
+export const refreshToken = async (req, res, next) => {
   try {
     const token = req.cookies.refreshToken;
 
     if (!token) {
-      return res.status(401).json({ message: 'No refresh token' });
+      throw unauthorized('No refresh token');
     }
 
     const { accessToken, refreshToken } = authService.refreshToken(token);
 
     res
-      .cookie('accessToken', accessToken, {
-        httpOnly: true,
-        // secure: true,
-        secure: false,
-        sameSite: 'strict',
-        maxAge: 1000 * 60 * 60,
-      })
-      .cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        // secure: true,
-        secure: false,
-        sameSite: 'strict',
-        maxAge: 1000 * 60 * 60 * 24 * 7,
-      })
+      .cookie(
+        'accessToken',
+        accessToken,
+        getCookieOptions(process.env.JWT_ACCES_TOKEN_TTL)
+      )
+      .cookie(
+        'refreshToken',
+        refreshToken,
+        getCookieOptions(process.env.JWT_REFRESH_TOKEN_TTL)
+      )
       .json({ message: 'Token refreshed' });
   } catch (error) {
-    res.status(401).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -79,18 +100,22 @@ export const logout = (req, res) => {
     .json({ message: 'Logged out' });
 };
 
-export const status = async (req, res) => {
-  const user = req.user; // Set by auth middleware
+export const status = async (req, res, next) => {
+  try {
+    const user = req.user; // Set by auth middleware
 
-  if (!user) {
-    return res.status(401).json({ message: 'User is not logged in' });
+    if (!user) {
+      throw unauthorized('User is not logged in');
+    }
+
+    const { username } = user;
+
+    res.json({
+      user: {
+        username,
+      },
+    });
+  } catch (error) {
+    next(error);
   }
-
-  const { username } = user;
-
-  res.json({
-    user: {
-      username,
-    },
-  });
 };

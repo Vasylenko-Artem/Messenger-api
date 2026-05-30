@@ -1,12 +1,9 @@
 import * as conversationsService from './conversations.service.js';
+import { requireAuthUserId } from '../../shared/validation/validators.js';
 
-export const create = async (req, res) => {
+export const create = async (req, res, next) => {
   try {
-    if (!req.user?.id) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const userId = req.user.id;
+    const userId = requireAuthUserId(req);
     const { type, participantIds } = req.body;
 
     const conversation = await conversationsService.createConversation(
@@ -17,34 +14,50 @@ export const create = async (req, res) => {
 
     res.status(201).json(conversation);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-export const getConversations = async (req, res) => {
+export const getConversations = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = requireAuthUserId(req);
 
     const conversations = await conversationsService.getConversations(userId);
 
     res.json(conversations);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-export const remove = async (req, res) => {
+export const addParticipants = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = requireAuthUserId(req);
+    const { id } = req.params;
+    const { participantIds } = req.body;
+
+    const conversation =
+      await conversationsService.addParticipantsToConversation(
+        id,
+        userId,
+        participantIds
+      );
+
+    res.json(conversation);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const remove = async (req, res, next) => {
+  try {
+    const userId = requireAuthUserId(req);
     const { id } = req.params;
 
     await conversationsService.deleteConversation(id, userId);
 
     res.json({ success: true });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };

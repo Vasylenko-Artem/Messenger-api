@@ -1,11 +1,12 @@
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
+import { unauthorized } from '../errors/http-error.js';
 
 export const authenticate = (req, res, next) => {
   const token = req.cookies.accessToken;
 
   if (!token) {
-    return res.status(401).json({ message: 'No token' });
+    return next(unauthorized('No token'));
   }
 
   try {
@@ -13,7 +14,7 @@ export const authenticate = (req, res, next) => {
     req.user = decoded;
     next();
   } catch {
-    return res.status(401).json({ message: 'Invalid token' });
+    return next(unauthorized('Invalid token'));
   }
 };
 
